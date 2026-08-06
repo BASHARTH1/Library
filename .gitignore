@@ -1,0 +1,45 @@
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Storage / uploads (original research files are NEVER copied into the repo)
+storage/
+uploads/
+
+# Portable PostgreSQL cluster — ~1.5 GB of binaries and cluster data.
+# Recreate it with docs/setup/LOCAL-DATABASE.md; it is machine-local state.
+.localdb/
+
+# Generated reports (contain extracted research text)
+reports/
+!reports/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Angular / Nest
+.angular/
+coverage/

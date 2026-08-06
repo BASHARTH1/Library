@@ -1,0 +1,108 @@
+<section class="hero">
+  <h1>{{ i18n.t('appTitle') }}</h1>
+  <p class="hero-sub">{{ i18n.t('aiAssistant') }}</p>
+
+  <form class="hero-search" (ngSubmit)="submit()">
+    <input
+      class="input"
+      type="search"
+      name="q"
+      [ngModel]="query()"
+      (ngModelChange)="query.set($event)"
+      [placeholder]="i18n.t('searchPlaceholder')"
+      [attr.aria-label]="i18n.t('search')" />
+    <button class="btn" type="submit">{{ i18n.t('search') }}</button>
+  </form>
+
+  <div class="hero-assistants">
+    <a class="assistant-cta" [routerLink]="['/assistant']">
+      <strong>{{ i18n.t('modeAsk') }}</strong>
+      <span>{{ i18n.t('modeAskHint') }}</span>
+    </a>
+    <a class="assistant-cta" [routerLink]="['/assistant']">
+      <strong>{{ i18n.t('modeFind') }}</strong>
+      <span>{{ i18n.t('modeFindHint') }}</span>
+    </a>
+  </div>
+
+  @if (stats(); as s) {
+    <div class="hero-stats">
+      <div><strong>{{ s.research_count }}</strong><span>{{ i18n.t('researchCount') }}</span></div>
+      <div><strong>{{ s.author_count }}</strong><span>{{ i18n.t('authorCount') }}</span></div>
+      <div><strong>{{ s.faculty_count }}</strong><span>{{ i18n.t('facultyCount') }}</span></div>
+      <div><strong>{{ s.page_count }}</strong><span>{{ i18n.t('pageCount') }}</span></div>
+      <div><strong>{{ s.embedding_count }}</strong><span>{{ i18n.t('chunkCount') }}</span></div>
+    </div>
+  }
+</section>
+
+<div class="home-grid">
+  <section>
+    <h2>{{ i18n.t('latest') }}</h2>
+    @if (loading()) {
+      <p class="muted"><span class="spinner"></span></p>
+    } @else if (latest().length === 0) {
+      <p class="muted">{{ i18n.t('noResults') }}</p>
+    } @else {
+      <div class="grid">
+        @for (item of latest(); track item.id) {
+          <a class="card research-card" [routerLink]="['/research', item.id]">
+            <h3>{{ title(item) }}</h3>
+            <p class="muted small">
+              @if (item.authors?.length) { <span>{{ item.authors!.join('، ') }}</span> · }
+              @if (item.faculty_name) { <span>{{ item.faculty_name }}</span> · }
+              <span>{{ item.publication_year }}</span>
+            </p>
+            <div class="chips">
+              <span class="chip">{{ item.language }}</span>
+              @if (item.total_pages) { <span class="chip">{{ item.total_pages }} {{ i18n.t('pageCount') }}</span> }
+            </div>
+          </a>
+        }
+      </div>
+    }
+  </section>
+
+  <aside class="home-side">
+    <div class="card">
+      <h3>{{ i18n.t('mostViewed') }}</h3>
+      @if (mostViewed().length === 0) {
+        <p class="muted small">—</p>
+      } @else {
+        <ol class="ranked">
+          @for (item of mostViewed(); track item.id) {
+            <li><a [routerLink]="['/research', item.id]">{{ title(item) }}</a>
+              <span class="muted small"> · {{ item.view_count }} {{ i18n.t('views') }}</span>
+            </li>
+          }
+        </ol>
+      }
+    </div>
+
+    @if (facets(); as f) {
+      <div class="card">
+        <h3>{{ i18n.t('browseByFaculty') }}</h3>
+        <ul class="facet-list">
+          @for (faculty of f.faculties; track faculty.id) {
+            <li>
+              <a [routerLink]="['/search']" [queryParams]="{ facultyId: faculty.id }">{{ faculty.name }}</a>
+              <span class="chip">{{ faculty.count }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>{{ i18n.t('browseByYear') }}</h3>
+        <ul class="facet-list">
+          @for (year of f.years; track year.year) {
+            <li>
+              <a [routerLink]="['/search']" [queryParams]="{ year: year.year }">{{ year.year }}</a>
+              <span class="chip">{{ year.count }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </aside>
+</div>

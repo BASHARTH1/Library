@@ -1,0 +1,83 @@
+.hero {
+  background: linear-gradient(135deg, var(--gu-navy) 0%, var(--gu-blue) 100%);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 2.5rem 1.75rem;
+  margin-block-end: 1.5rem;
+  text-align: center;
+}
+.hero h1 { color: #fff; margin-block-end: 0.25rem; }
+.hero-sub { color: #c5d4ea; margin-block: 0 1.5rem; }
+
+.hero-search {
+  display: flex;
+  gap: 0.5rem;
+  max-width: 720px;
+  margin-inline: auto;
+}
+.hero-search .btn { background: var(--gu-gold); color: var(--gu-navy-dark); font-weight: 600; white-space: nowrap; }
+.hero-search .btn:hover { background: #dbb43a; }
+
+.hero-assistants {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+  max-width: 720px;
+  margin: 1.25rem auto 0;
+}
+.assistant-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  text-align: start;
+}
+.assistant-cta:hover { background: rgba(255, 255, 255, 0.18); text-decoration: none; }
+.assistant-cta span { font-size: 0.82rem; color: #c5d4ea; }
+
+.hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2rem;
+  margin-block-start: 1.75rem;
+}
+.hero-stats div { display: flex; flex-direction: column; }
+.hero-stats strong { font-size: 1.5rem; color: var(--gu-gold); }
+.hero-stats span { font-size: 0.8rem; color: #c5d4ea; }
+
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .home-grid { grid-template-columns: 1fr; }
+}
+
+.home-side { display: grid; gap: 1rem; }
+
+.research-card { display: block; color: inherit; }
+.research-card:hover { text-decoration: none; border-color: var(--gu-accent); }
+.research-card h3 { margin-block-end: 0.3rem; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-block-start: 0.5rem; }
+
+.ranked { margin: 0; padding-inline-start: 1.2rem; font-size: 0.9rem; }
+.ranked li { margin-block-end: 0.5rem; }
+
+.facet-list { list-style: none; margin: 0; padding: 0; font-size: 0.9rem; }
+.facet-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-block: 0.35rem;
+  border-block-end: 1px solid var(--border);
+}
+.facet-list li:last-child { border-block-end: none; }

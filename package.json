@@ -1,0 +1,30 @@
+{
+  "name": "gulf-research-repository",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gulf University AI-powered digital research repository",
+  "workspaces": [
+    "tools/inspector",
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "inspect": "npm run inspect --workspace tools/inspector",
+    "extract:sample": "npm run extract:sample --workspace tools/inspector",
+    "db:start": "node scripts/db.mjs start",
+    "db:stop": "node scripts/db.mjs stop",
+    "db:status": "node scripts/db.mjs status",
+    "api:build": "npm run build --workspace apps/api",
+    "api:dev": "npm run start:dev --workspace apps/api",
+    "api:seed": "npm run build --workspace apps/api && node apps/api/dist/scripts/seed-samples.js",
+    "api:ingest-all": "npm run build --workspace apps/api && node apps/api/dist/scripts/ingest-all.js",
+    "api:embed": "npm run build --workspace apps/api && node apps/api/dist/scripts/embed-pending.js",
+    "api:ocr": "npm run build --workspace apps/api && node apps/api/dist/scripts/ocr-repair.js",
+    "web:dev": "npm run start --workspace apps/web",
+    "web:build": "npm run build --workspace apps/web",
+    "dev": "node scripts/dev.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

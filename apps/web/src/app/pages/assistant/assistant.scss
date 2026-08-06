@@ -1,0 +1,79 @@
+.assistant-head { margin-block-end: 1.25rem; }
+
+.mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-block: 0.75rem 1rem;
+}
+.mode-tabs button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font: inherit;
+  font-weight: 600;
+  color: var(--gu-navy);
+  cursor: pointer;
+  text-align: start;
+}
+.mode-tabs button small { font-weight: 400; color: var(--muted); font-size: 0.8rem; }
+.mode-tabs button.active {
+  border-color: var(--gu-navy);
+  background: #eef2f7;
+  box-shadow: inset 0 -3px 0 var(--gu-gold);
+}
+
+.assistant-input { display: flex; gap: 0.5rem; }
+
+.examples { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-block-start: 0.75rem; }
+
+/* ---- ask mode ---- */
+.turn { margin-block-end: 1rem; }
+.turn-question {
+  font-weight: 600;
+  background: #eef2f7;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  margin: 0 0 0.7rem;
+}
+.turn-answer { white-space: pre-wrap; margin-block-end: 0.6rem; }
+.turn-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-block-end: 0.5rem; }
+
+.answer-sources { margin-block-start: 1rem; border-block-start: 1px solid var(--border); padding-block-start: 0.75rem; }
+.answer-sources h3 { font-size: 0.95rem; margin-block-end: 0.5rem; }
+
+.source-paper {
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border-inline-start: 3px solid var(--border);
+  margin-block-end: 0.6rem;
+}
+/* papers the answer actually drew on are visually distinct from merely retrieved ones */
+.source-paper.cited { border-inline-start-color: var(--gu-gold); background: #fdfaf0; }
+.source-paper-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.source-paper p { margin: 0.2rem 0 0.35rem; }
+
+.excerpt {
+  margin: 0.4rem 0 0;
+  padding: 0.45rem 0.7rem;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.excerpt p { margin: 0.3rem 0 0; color: var(--muted); }
+
+/* ---- find mode ---- */
+.interpretation { margin: 0 0 0.4rem; font-size: 1.02rem; }
+.found-list { margin-block-start: 1rem; }
+.found h3 { margin-block-end: 0.25rem; }
+.relevance {
+  margin: 0.45rem 0 0;
+  padding-inline-start: 0.7rem;
+  border-inline-start: 3px solid var(--gu-accent);
+  color: var(--text);
+}

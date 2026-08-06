@@ -1,0 +1,37 @@
+.search-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-block-end: 1.25rem;
+}
+
+.search-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .search-layout { grid-template-columns: 1fr; }
+}
+
+.filters { display: grid; gap: 0.85rem; position: sticky; top: 80px; }
+.filters label { display: grid; gap: 0.25rem; }
+
+.result-meta { margin-block: 0 0.75rem; }
+
+.hit h3 { margin-block-end: 0.25rem; }
+.hit-abstract { margin-block: 0.5rem; font-size: 0.92rem; }
+
+.matched {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.85rem;
+  background: #f8fafc;
+  border-inline-start: 3px solid var(--border);
+  border-radius: 6px;
+}
+/* a passage literally containing the query is highlighted over a vector-only hit */
+.matched.lexical { border-inline-start-color: var(--gu-gold); background: #fdfaf0; }
+.matched p { margin: 0.4rem 0 0; font-size: 0.88rem; color: var(--muted); }
+
+.scores { margin-block-start: 0.6rem; }
+.scores ul { display: flex; flex-wrap: wrap; gap: 0.75rem; list-style: none; padding: 0; margin: 0.4rem 0 0; }

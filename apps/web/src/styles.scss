@@ -1,0 +1,201 @@
+/* Gulf University Research Repository — global styles.
+   Layout is direction-agnostic: logical properties only, so the same CSS
+   serves Arabic (RTL) and English (LTR) without mirrored stylesheets. */
+
+:root {
+  /* Sampled from the official Gulf University logo:
+     wordmark #0050A0–#0050B0, falcon wing #909090, gold highlight #F0D0A0. */
+  --gu-blue: #0054a6;
+  --gu-navy: #003c75;
+  --gu-navy-dark: #002b55;
+  --gu-gold: #c9a35a;
+  --gu-gold-light: #f0d0a0;
+  --gu-grey: #909090;
+  --gu-accent: #0054a6;
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --border: #dfe4ec;
+  --text: #16202e;
+  --muted: #5f6b7d;
+  --success: #157347;
+  --warn: #9a6700;
+  --danger: #b42318;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.05);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, 'Noto Naskh Arabic', sans-serif;
+  line-height: 1.65;
+}
+
+html[dir='rtl'] body { font-family: 'Segoe UI', 'Noto Naskh Arabic', 'Traditional Arabic', Tahoma, sans-serif; }
+
+a { color: var(--gu-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1, h2, h3, h4 { line-height: 1.35; margin: 0 0 0.5rem; color: var(--gu-navy); }
+h1 { font-size: 1.7rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.05rem; }
+
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+
+/* ---- shell ----
+   The logo wordmark is dark blue on a transparent background, so the header is
+   light. Placing it on the previous navy bar would have made it unreadable. */
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1.5rem;
+  background: #fff;
+  color: var(--gu-navy);
+  border-block-end: 3px solid var(--gu-blue);
+  box-shadow: 0 1px 6px rgba(16, 24, 40, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.brand { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; }
+.brand:hover { text-decoration: none; }
+.brand-logo {
+  /* 4.59:1 lockup — fix the height and let width follow so it never distorts. */
+  block-size: 44px;
+  inline-size: auto;
+  max-inline-size: 230px;
+  object-fit: contain;
+  display: block;
+}
+.brand-divider {
+  inline-size: 1px;
+  block-size: 32px;
+  background: var(--border);
+}
+.brand-sub {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--gu-navy);
+  line-height: 1.25;
+}
+
+.site-nav { display: flex; align-items: center; gap: 1.1rem; }
+.site-nav a { color: var(--gu-navy); font-size: 0.94rem; font-weight: 500; }
+.site-nav a:hover { color: var(--gu-blue); }
+.lang-toggle {
+  background: var(--gu-blue);
+  color: #fff;
+  border: 1px solid var(--gu-blue);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+}
+.lang-toggle:hover { background: var(--gu-navy); border-color: var(--gu-navy); }
+
+@media (max-width: 640px) {
+  .brand-divider, .brand-sub { display: none; }
+  .brand-logo { block-size: 34px; }
+  .site-header { padding-inline: 0.9rem; }
+  .site-nav { gap: 0.7rem; }
+}
+
+.site-main { max-width: 1240px; margin: 0 auto; padding: 1.5rem; min-height: 70vh; width: 100%; }
+
+.site-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--gu-navy-dark);
+  color: #b9c6da;
+  font-size: 0.82rem;
+}
+
+/* ---- primitives ---- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.15rem;
+}
+
+.btn {
+  font: inherit;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.5rem 1.1rem;
+  cursor: pointer;
+  background: var(--gu-navy);
+  color: #fff;
+}
+.btn:hover:not(:disabled) { background: var(--gu-navy-dark); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--gu-navy); border-color: var(--border); }
+.btn-ghost:hover:not(:disabled) { background: #eef2f7; }
+.btn-sm { padding: 0.3rem 0.7rem; font-size: 0.84rem; }
+
+.input, .select {
+  font: inherit;
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+}
+.input:focus, .select:focus { outline: 2px solid var(--gu-accent); outline-offset: -1px; }
+
+.chip {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: var(--muted);
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+}
+.chip-gold { background: #fdf6e3; color: #7a5c00; border-color: #efe0b0; }
+
+.badge-confidence { font-weight: 600; }
+.badge-confidence.high { color: var(--success); }
+.badge-confidence.medium { color: var(--warn); }
+.badge-confidence.low, .badge-confidence.none { color: var(--danger); }
+
+.notice {
+  border-inline-start: 4px solid var(--warn);
+  background: #fffaeb;
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #7a5c00;
+}
+.notice-ai {
+  border-inline-start-color: var(--gu-accent);
+  background: #eff6ff;
+  color: #1e429f;
+}
+
+.grid { display: grid; gap: 1rem; }
+.spinner {
+  display: inline-block;
+  inline-size: 14px;
+  block-size: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--gu-accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: -2px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

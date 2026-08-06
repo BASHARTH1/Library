@@ -1,0 +1,186 @@
+@if (loading()) {
+  <p class="muted"><span class="spinner"></span></p>
+} @else if (research(); as r) {
+  <a class="back-link small" routerLink="/search">← {{ i18n.t('backToSearch') }}</a>
+
+  <article class="card research-head">
+    <h1>{{ title() }}</h1>
+
+    <dl class="meta-grid">
+      @if (authorsOnly().length) {
+        <div><dt>{{ i18n.t('authors') }}</dt><dd>
+          @for (a of authorsOnly(); track a.id) { <span>{{ a.name }}</span> }
+        </dd></div>
+      }
+      @if (supervisorsOnly().length) {
+        <div><dt>{{ i18n.t('supervisors') }}</dt><dd>
+          @for (a of supervisorsOnly(); track a.id) { <span>{{ a.name }}</span> }
+        </dd></div>
+      }
+      @if (r.faculty_name) { <div><dt>{{ i18n.t('faculty') }}</dt><dd>{{ r.faculty_name }}</dd></div> }
+      @if (r.department_name) { <div><dt>{{ i18n.t('department') }}</dt><dd>{{ r.department_name }}</dd></div> }
+      @if (r.publication_year) { <div><dt>{{ i18n.t('year') }}</dt><dd>{{ r.publication_year }}</dd></div> }
+      @if (r.degree) { <div><dt>{{ i18n.t('degree') }}</dt><dd>{{ r.degree }}</dd></div> }
+      @if (r.total_pages) { <div><dt>{{ i18n.t('pages') }}</dt><dd>{{ r.total_pages }}</dd></div> }
+      <div><dt>{{ i18n.t('language') }}</dt><dd>{{ r.language }}</dd></div>
+      <div><dt>{{ i18n.t('views') }}</dt><dd>{{ r.view_count }}</dd></div>
+      @if (r.doi) { <div><dt>DOI</dt><dd>{{ r.doi }}</dd></div> }
+    </dl>
+
+    @if (r.keywords.length) {
+      <div class="chips">
+        @for (k of r.keywords; track k.term) { <span class="chip">{{ k.term }}</span> }
+      </div>
+    }
+
+    @if (showTextQualityWarning()) {
+      <p class="notice">{{ i18n.t('textQualityWarning') }}</p>
+    }
+  </article>
+
+  @if (abstract()) {
+    <section class="card">
+      <h2>{{ i18n.t('abstract') }}</h2>
+      <p class="abstract-text">{{ abstract() }}</p>
+    </section>
+  }
+
+  <div class="research-layout">
+    <!-- ================= AI chat ================= -->
+    <section class="card chat-panel">
+      <h2>{{ i18n.t('askThisResearch') }}</h2>
+      <p class="notice notice-ai small">{{ i18n.t('aiDisclaimer') }}</p>
+
+      @if (suggestions().length && turns().length === 0) {
+        <div class="suggestions">
+          <p class="small muted">{{ i18n.t('suggestedQuestions') }}</p>
+          @for (s of suggestions(); track s) {
+            <button type="button" class="btn btn-ghost btn-sm" (click)="ask(s)">{{ s }}</button>
+          }
+        </div>
+      }
+
+      <div class="turns">
+        @for (turn of turns(); track $index) {
+          <div class="turn">
+            <p class="turn-question">{{ turn.question }}</p>
+
+            @if (turn.error) {
+              <p class="notice small">{{ turn.error }}</p>
+            } @else {
+              @if (turn.streaming && !turn.answer) {
+                <p class="muted small"><span class="spinner"></span> {{ i18n.t('retrieving') }}</p>
+              }
+
+              @if (turn.answer) {
+                <div class="turn-answer">{{ turn.answer }}</div>
+              }
+
+              @if (!turn.streaming && turn.confidence) {
+                <div class="turn-meta small">
+                  <span>{{ i18n.t('confidence') }}:
+                    <span class="badge-confidence" [class]="turn.confidence.level">
+                      {{ confidenceLabel(turn.confidence.level) }}
+                    </span>
+                  </span>
+                  @if (turn.usage) {
+                    <span class="muted">· {{ turn.usage.model }} · {{ turn.usage.totalTokens }} tok · {{ turn.usage.latencyMs }}ms</span>
+                  }
+                  @if (turn.invalidPages.length) {
+                    <span class="badge-confidence low">· invalid page refs: {{ turn.invalidPages.join(', ') }}</span>
+                  }
+                </div>
+
+                <div class="turn-actions">
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="copy(turn.answer, $index)">
+                    {{ copiedIndex() === $index ? i18n.t('copied') : i18n.t('copy') }}
+                  </button>
+                  <button type="button" class="btn btn-ghost btn-sm" (click)="regenerate(turn)" [disabled]="streaming()">
+                    {{ i18n.t('regenerate') }}
+                  </button>
+                </div>
+              }
+
+              @if (turn.sources.length) {
+                <details class="sources" [open]="!turn.streaming">
+                  <summary class="small">{{ i18n.t('sources') }} ({{ turn.sources.length }})</summary>
+                  @for (source of turn.sources; track source.chunkId) {
+                    <div class="source" [class.cited]="source.wasCited">
+                      <div class="source-head small">
+                        <button type="button" class="chip chip-gold page-btn" (click)="openPage(source.pageNumber)">
+                          {{ i18n.t('page') }} {{ source.pageNumber }} · {{ i18n.t('openPage') }}
+                        </button>
+                        @if (source.sectionName) { <span class="chip">{{ source.sectionName }}</span> }
+                        <span class="muted">{{ source.similarity }}</span>
+                      </div>
+                      <p class="source-text small">{{ source.excerpt }}</p>
+                    </div>
+                  }
+                </details>
+              }
+            }
+          </div>
+        }
+      </div>
+
+      <form class="chat-input" (ngSubmit)="ask()">
+        <input
+          class="input"
+          name="question"
+          [ngModel]="question()"
+          (ngModelChange)="question.set($event)"
+          [placeholder]="i18n.t('askPlaceholder')"
+          [disabled]="streaming()" />
+        @if (streaming()) {
+          <button type="button" class="btn btn-ghost" (click)="stop()">{{ i18n.t('stop') }}</button>
+        } @else {
+          <button type="submit" class="btn" [disabled]="question().trim().length < 2">{{ i18n.t('send') }}</button>
+        }
+      </form>
+    </section>
+
+    <!-- ================= side ================= -->
+    <aside class="research-side">
+      @if (r.sections.length) {
+        <div class="card">
+          <h3>{{ i18n.t('sections') }}</h3>
+          <ul class="section-list small">
+            @for (section of r.sections; track section.name) {
+              <li>
+                <button type="button" class="link-btn" (click)="openPage(section.start_page)">
+                  {{ section.name }}
+                </button>
+                <span class="muted">p.{{ section.start_page }}–{{ section.end_page }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      @if (similar().length) {
+        <div class="card">
+          <h3>{{ i18n.t('similarResearch') }}</h3>
+          @for (item of similar(); track item.id) {
+            <div class="similar-item">
+              <a [routerLink]="['/research', item.id]">{{ similarTitle(item) }}</a>
+              <p class="small muted">
+                {{ item.publicationYear }} · {{ i18n.t('why') }}: {{ item.reasons.join(' · ') }}
+              </p>
+            </div>
+          }
+        </div>
+      }
+    </aside>
+  </div>
+
+  <!-- ================= viewer ================= -->
+  @if (hasPdf()) {
+    <section class="card viewer">
+      <h2>{{ i18n.t('viewer') }} — {{ i18n.t('page') }} {{ viewerPage() }}</h2>
+      <iframe
+        class="viewer-frame"
+        [src]="viewerUrl()"
+        [title]="title()"></iframe>
+    </section>
+  }
+}

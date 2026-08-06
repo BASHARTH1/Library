@@ -1,0 +1,29 @@
+{
+  "name": "@gulf/inspector",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Phase-1 folder inspection and sample metadata extraction for the Gulf University research repository",
+  "scripts": {
+    "inspect": "tsx src/inspect-folder.ts",
+    "extract:sample": "tsx src/extract-sample.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "@google/genai": "^1.30.0",
+    "@types/pg": "^8.20.3",
+    "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
+    "mammoth": "^1.11.0",
+    "mupdf": "^1.28.0",
+    "pdfjs-dist": "^4.10.38",
+    "pg": "^8.22.0",
+    "word-extractor": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

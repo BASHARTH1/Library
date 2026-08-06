@@ -1,0 +1,51 @@
+{
+  "name": "@gulf/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gulf University Research Repository — NestJS backend",
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "schema:apply": "tsx src/scripts/apply-schema.ts",
+    "seed": "node dist/scripts/seed-samples.js",
+    "ingest:all": "node dist/scripts/ingest-all.js",
+    "embed:pending": "node dist/scripts/embed-pending.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^11.1.6",
+    "@nestjs/typeorm": "^11.0.0",
+    "bcryptjs": "^3.0.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "dotenv": "^16.6.1",
+    "helmet": "^8.1.0",
+    "mammoth": "^1.11.0",
+    "mupdf": "^1.28.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "pdfjs-dist": "^4.10.38",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "typeorm": "^0.3.27",
+    "word-extractor": "^1.0.4"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.10",
+    "@nestjs/schematics": "^11.0.8",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.7.0",
+    "@types/passport-jwt": "^4.0.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

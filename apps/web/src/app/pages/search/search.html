@@ -1,0 +1,123 @@
+<form class="search-bar" (ngSubmit)="apply()">
+  <input
+    class="input"
+    type="search"
+    name="q"
+    [ngModel]="query()"
+    (ngModelChange)="query.set($event)"
+    [placeholder]="i18n.t('searchPlaceholder')" />
+  <button class="btn" type="submit">{{ i18n.t('search') }}</button>
+</form>
+
+<div class="search-layout">
+  <aside class="card filters">
+    <h3>{{ i18n.t('filters') }}</h3>
+
+    @if (facets(); as f) {
+      <label>
+        <span class="small muted">{{ i18n.t('faculty') }}</span>
+        <select class="select" [ngModel]="facultyId()" (ngModelChange)="facultyId.set($event); apply()" name="faculty">
+          <option value="">{{ i18n.t('all') }}</option>
+          @for (faculty of f.faculties; track faculty.id) {
+            <option [value]="faculty.id">{{ faculty.name }} ({{ faculty.count }})</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span class="small muted">{{ i18n.t('year') }}</span>
+        <select class="select" [ngModel]="year()" (ngModelChange)="year.set($event); apply()" name="year">
+          <option value="">{{ i18n.t('all') }}</option>
+          @for (y of f.years; track y.year) {
+            <option [value]="y.year">{{ y.year }} ({{ y.count }})</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        <span class="small muted">{{ i18n.t('language') }}</span>
+        <select class="select" [ngModel]="language()" (ngModelChange)="language.set($event); apply()" name="language">
+          <option value="">{{ i18n.t('all') }}</option>
+          @for (l of f.languages; track l.language) {
+            <option [value]="l.language">{{ l.language }} ({{ l.count }})</option>
+          }
+        </select>
+      </label>
+    }
+  </aside>
+
+  <section class="results">
+    @if (loading()) {
+      <p class="muted"><span class="spinner"></span> …</p>
+    } @else if (response(); as r) {
+      <p class="muted small result-meta">
+        {{ r.total }} {{ i18n.t('results') }} · {{ r.latencyMs }}ms
+        @if (r.usedSemantic) { · <span class="chip chip-gold">{{ i18n.t('semanticOn') }}</span> }
+      </p>
+
+      @if (r.relaxed) {
+        <p class="notice small">{{ i18n.t('relaxedSearch') }}</p>
+      }
+
+      @if (semanticPartial() && stats(); as s) {
+        <p class="notice small">
+          {{ i18n.tf('semanticPartial', s.semantic_ready_count, s.research_count) }}
+        </p>
+      }
+
+      @if (r.hits.length === 0) {
+        <div class="card">
+          <p class="muted">{{ i18n.t('noResults') }}</p>
+          <p class="small">{{ i18n.t('tryFewerWords') }}</p>
+          @if (stats(); as s) {
+            <p class="notice small">
+              {{ i18n.tf('corpusHint', s.research_count, s.semantic_ready_count) }}
+            </p>
+          }
+        </div>
+      } @else {
+        <div class="grid">
+          @for (hit of r.hits; track hit.id) {
+            <article class="card hit">
+              <h3><a [routerLink]="['/research', hit.id]">{{ title(hit) }}</a></h3>
+              <p class="muted small">
+                @if (hit.authors.length) { <span>{{ hit.authors.join('، ') }}</span> · }
+                @if (hit.facultyName) { <span>{{ hit.facultyName }}</span> · }
+                <span>{{ hit.publicationYear }}</span>
+                @if (hit.totalPages) { · <span>{{ hit.totalPages }} {{ i18n.t('pageCount') }}</span> }
+              </p>
+
+              @if (abstract(hit)) {
+                <p class="hit-abstract">{{ abstract(hit) }}…</p>
+              }
+
+              @if (hit.matchedChunk; as chunk) {
+                <blockquote class="matched" [class.lexical]="chunk.isLexical">
+                  <span class="chip chip-gold">
+                    {{ chunk.isLexical ? i18n.t('termMatch') : i18n.t('relatedMatch') }}
+                  </span>
+                  <span class="chip">{{ i18n.t('page') }} {{ chunk.pageNumber }}</span>
+                  @if (chunk.sectionName) { <span class="chip">{{ chunk.sectionName }}</span> }
+                  <p>{{ chunk.text }}</p>
+                </blockquote>
+              }
+
+              <details class="scores">
+                <summary class="small muted">score {{ hit.scores.total }}</summary>
+                <ul class="small muted">
+                  <li>title {{ hit.scores.exactTitle }}</li>
+                  <li>author {{ hit.scores.author }}</li>
+                  <li>keyword {{ hit.scores.keyword }}</li>
+                  <li>abstract {{ hit.scores.abstract }}</li>
+                  <li>semantic {{ hit.scores.semantic }}</li>
+                  <li>full-text {{ hit.scores.fullText }}</li>
+                  <li>recency {{ hit.scores.recency }}</li>
+                </ul>
+              </details>
+            </article>
+          }
+        </div>
+      }
+    }
+  </section>
+</div>
