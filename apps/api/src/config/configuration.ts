@@ -43,6 +43,12 @@ export interface AppConfig {
   };
   ai: {
     dailyTokenLimitPerUser: number;
+    /**
+     * Shared daily ceiling for signed-out callers. AI is open to everyone, so
+     * there is no account to meter; this caps what the whole anonymous public
+     * can spend of the Gemini balance in a day. 0 disables the cap entirely.
+     */
+    anonymousDailyTokenLimit: number;
     maxChatHistory: number;
     maxRetrievedChunks: number;
     cacheTtlSeconds: number;
@@ -114,6 +120,7 @@ export default (): AppConfig => ({
   },
   ai: {
     dailyTokenLimitPerUser: num('AI_DAILY_TOKEN_LIMIT_PER_USER', 200000),
+    anonymousDailyTokenLimit: num('AI_ANONYMOUS_DAILY_TOKEN_LIMIT', 2000000),
     maxChatHistory: num('AI_MAX_CHAT_HISTORY', 20),
     maxRetrievedChunks: num('AI_MAX_RETRIEVED_CHUNKS', 12),
     cacheTtlSeconds: num('AI_CACHE_TTL_SECONDS', 86400),

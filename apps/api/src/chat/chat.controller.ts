@@ -4,7 +4,11 @@ import type { Request, Response } from 'express';
 import { ChatService } from './chat.service';
 import { AssistantService } from './assistant.service';
 import { AiUsageGuard } from '../auth/auth.guards';
-import { CurrentUser, RequirePermissions, type AuthenticatedUser } from '../auth/auth.types';
+import { ANONYMOUS, CurrentUser, OptionalAuth, type AuthenticatedUser } from '../auth/auth.types';
+
+/** Anonymous callers have no users row, and ai_usage_logs.user_id is a FK. */
+const usageOwner = (user: AuthenticatedUser): string | undefined =>
+  user.id === ANONYMOUS.id ? undefined : user.id;
 
 export class AskDto {
   @IsString()
@@ -27,13 +31,16 @@ export class FindDto {
 }
 
 /**
- * Both AI endpoints require an account, the ai.chat permission, and available
- * daily budget. They are the only routes that can spend money, so they carry
- * the strictest checks in the application.
+ * Both AI endpoints are open to signed-out visitors: the repository is public
+ * and the assistant is part of what it offers.
+ *
+ * They remain the only routes that can spend money, so AiUsageGuard still runs
+ * — a signed-in caller is metered against their own daily allowance, and
+ * everyone else shares the anonymous ceiling.
  */
 @Controller('api/chat')
 @UseGuards(AiUsageGuard)
-@RequirePermissions('ai.chat')
+@OptionalAuth()
 export class ChatController {
   constructor(
     private readonly chat: ChatService,
@@ -49,7 +56,7 @@ export class ChatController {
     return this.assistant.find({
       query: body.query,
       limit: body.limit,
-      userId: user.id,
+      userId: usageOwner(user),
       isUniversityMember: user.isUniversityMember,
       isAdmin: user.isAdmin,
     });
@@ -89,7 +96,7 @@ export class ChatController {
         conversationId: body.conversationId,
         generalKnowledge: body.generalKnowledge,
         // Retrieval is access-filtered by these before any chunk is read.
-        userId: user.id,
+        userId: usageOwner(user),
         isUniversityMember: user.isUniversityMember,
         isAdmin: user.isAdmin,
         signal: controller.signal,

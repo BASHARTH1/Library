@@ -14,13 +14,6 @@
     </button>
   </div>
 
-  @if (!auth.isAuthenticated()) {
-    <p class="notice">
-      {{ i18n.t('aiRequiresAccount') }}
-      <a routerLink="/login" [queryParams]="{ redirect: '/assistant' }">{{ i18n.t('signInToUseAi') }}</a>
-    </p>
-  }
-
   <form class="assistant-input" (ngSubmit)="submit()">
     <input class="input" name="q"
            [ngModel]="query()" (ngModelChange)="query.set($event)"

@@ -143,8 +143,21 @@ export class AiUsageGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const user = context.switchToHttp().getRequest<RequestWithUser>().user;
 
+    // AI is open to signed-out visitors. There is no account to meter them
+    // against, so they share one daily ceiling: the Gemini key is billable and
+    // this endpoint is reachable by anyone who knows the URL.
     if (!user || user.id === ANONYMOUS.id) {
-      throw new ForbiddenException('AI features require an account');
+      const limit = this.config.get('ai', { infer: true }).anonymousDailyTokenLimit;
+      if (limit <= 0) return true;
+
+      const usage = await this.auth.anonymousUsageToday();
+      if (usage.tokens >= limit) {
+        this.logger.warn(`Anonymous daily AI ceiling reached (${usage.tokens}/${limit})`);
+        throw new ForbiddenException(
+          `The shared daily AI limit has been reached (${usage.tokens}/${limit}). It resets at midnight.`,
+        );
+      }
+      return true;
     }
     if (!user.permissions.includes('ai.chat') && !user.roles.includes('super_admin')) {
       throw new ForbiddenException('This account is not permitted to use AI features');

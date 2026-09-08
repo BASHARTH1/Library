@@ -12,15 +12,16 @@ import {
   ParseUUIDPipe,
   Query,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { AiUsageGuard } from '../auth/auth.guards';
 import { ResearchService } from './research.service';
 import { SearchService, type SearchFilters } from '../search/search.service';
 import { ChatService } from '../chat/chat.service';
 import {
   CurrentUser,
   OptionalAuth,
-  RequirePermissions,
   type AuthenticatedUser,
 } from '../auth/auth.types';
 
@@ -97,9 +98,12 @@ export class ResearchController {
     return this.research.similar(id, false, false);
   }
 
-  /** Generates via Gemini on a cache miss, so it is a billable route. */
+  /**
+   * Generates via Gemini on a cache miss, so it is a billable route. Open to
+   * signed-out visitors like the rest of the assistant; AiUsageGuard meters it.
+   */
   @Get('research/:id/suggested-questions')
-  @RequirePermissions('ai.chat')
+  @UseGuards(AiUsageGuard)
   suggestedQuestions(@Param('id', ParseUUIDPipe) id: string) {
     return this.chat.suggestedQuestions(id);
   }

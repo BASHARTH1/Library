@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import type { AnswerSource } from './api.service';
 import { AuthService } from './auth.service';
+import { I18nService } from './i18n.service';
 
 export interface ChatFinal {
   conversationId: string;
@@ -31,6 +32,7 @@ export interface ChatCallbacks {
 @Injectable({ providedIn: 'root' })
 export class ChatService {
   private readonly auth = inject(AuthService);
+  private readonly i18n = inject(I18nService);
 
   ask(
     body: { question: string; researchId?: string; conversationId?: string; generalKnowledge?: boolean },
@@ -54,15 +56,14 @@ export class ChatService {
         });
 
         if (!response.ok || !response.body) {
-          if (response.status === 401) {
-            callbacks.onError?.('AUTH_REQUIRED');
-          } else if (response.status === 403) {
-            const detail = await response.json().catch(() => null);
-            callbacks.onError?.(
-              (detail as { message?: string })?.message ?? 'Not permitted or daily limit reached',
-            );
+          // Every message here is rendered straight into the transcript, so it
+          // has to be readable prose in the reader's language — never a status
+          // code or an internal sentinel.
+          if (response.status === 403) {
+            // The only 403 a visitor can hit is the shared daily AI ceiling.
+            callbacks.onError?.(this.i18n.t('aiLimitReached'));
           } else {
-            callbacks.onError?.(`Request failed with status ${response.status}`);
+            callbacks.onError?.(this.i18n.t('aiUnavailable'));
           }
           return;
         }
@@ -118,7 +119,8 @@ export class ChatService {
         callbacks.onDone?.();
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
-          callbacks.onError?.((error as Error).message);
+          // A dropped connection surfaces as "Failed to fetch"; show prose.
+          callbacks.onError?.(this.i18n.t('aiUnavailable'));
         }
         callbacks.onDone?.();
       }

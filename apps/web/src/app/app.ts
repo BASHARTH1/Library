@@ -23,6 +23,11 @@ import { AuthService } from './core/auth.service';
         <a routerLink="/search">{{ i18n.t('search') }}</a>
         <a routerLink="/assistant">{{ i18n.t('aiAssistant') }}</a>
 
+        <!--
+          No sign-in link: the repository and the assistant are open to
+          everyone. The chip only appears for someone who signed in through
+          /login directly, so an administrator still has a way back out.
+        -->
         @if (auth.isAuthenticated()) {
           <span class="user-chip" [title]="auth.user()?.email ?? ''">
             {{ auth.user()?.fullName || auth.user()?.email }}
@@ -30,8 +35,6 @@ import { AuthService } from './core/auth.service';
           <button type="button" class="lang-toggle ghost" (click)="signOut()">
             {{ i18n.t('signOut') }}
           </button>
-        } @else {
-          <a routerLink="/login">{{ i18n.t('signIn') }}</a>
         }
 
         <button type="button" class="lang-toggle" (click)="i18n.toggle()">

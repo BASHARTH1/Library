@@ -175,4 +175,21 @@ export class AuthService {
     );
     return { tokens: Number(row?.tokens ?? 0), requests: Number(row?.requests ?? 0) };
   }
+
+  /**
+   * Today's spend by signed-out callers, which all log with a NULL user_id.
+   *
+   * They cannot be metered individually, so the AI guard holds them to a single
+   * shared ceiling rather than a per-account one.
+   */
+  async anonymousUsageToday(): Promise<{ tokens: number; requests: number }> {
+    const [row] = await this.dataSource.query<Array<{ tokens: string; requests: string }>>(
+      `SELECT COALESCE(sum(total_tokens), 0) AS tokens, count(*) AS requests
+       FROM ai_usage_logs
+       WHERE user_id IS NULL
+         AND operation IN ('chat_single', 'chat_repository', 'classification')
+         AND created_at >= date_trunc('day', now())`,
+    );
+    return { tokens: Number(row?.tokens ?? 0), requests: Number(row?.requests ?? 0) };
+  }
 }
