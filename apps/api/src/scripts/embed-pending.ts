@@ -1,5 +1,11 @@
 /**
- * Backfill embeddings for any chunk that does not yet have a vector.
+ * Backfill embeddings for any chunk that does not yet have a vector, and for
+ * any research still missing its document-level title/abstract vectors.
+ *
+ * Both are needed: chunk vectors drive semantic search, while the title and
+ * abstract vectors drive `similar` and the recommendations. Selecting only on
+ * pending chunks silently skipped the document-level backfill once every chunk
+ * had been embedded, which left `similar` returning nothing.
  *
  * Safe to run repeatedly. Stops cleanly when the daily Gemini quota is reached
  * and reports exactly how much work remains.
@@ -24,25 +30,34 @@ async function main(): Promise<void> {
 
   const model = process.env.GEMINI_EMBEDDING_MODEL ?? 'gemini-embedding-001';
 
-  const targets = await dataSource.query<Array<{ id: string; title: string; pending: string }>>(
+  const targets = await dataSource.query<Array<{ id: string; title: string; pending: string; doc_pending: boolean }>>(
+    // Grouping is by r.id, the primary key, so the other r columns are
+    // functionally dependent on it and may be read in HAVING and SELECT.
     `SELECT r.id,
             left(COALESCE(r.title_ar, r.title_en), 45) AS title,
             count(c.id) FILTER (
               WHERE NOT EXISTS (SELECT 1 FROM research_embeddings e WHERE e.chunk_id = c.id AND e.model = $1)
-            ) AS pending
+            ) AS pending,
+            (r.title_embedding IS NULL OR r.abstract_embedding IS NULL) AS doc_pending
      FROM research r
      JOIN research_chunks c ON c.research_id = r.id
      WHERE r.deleted_at IS NULL
-     GROUP BY r.id, r.title_ar, r.title_en
+     GROUP BY r.id
      HAVING count(c.id) FILTER (
        WHERE NOT EXISTS (SELECT 1 FROM research_embeddings e WHERE e.chunk_id = c.id AND e.model = $1)
      ) > 0
+        OR r.title_embedding IS NULL
+        OR r.abstract_embedding IS NULL
      ORDER BY pending`,
     [model],
   );
 
   const totalPending = targets.reduce((sum, t) => sum + Number(t.pending), 0);
-  logger.log(`${targets.length} research records with ${totalPending} chunks awaiting vectors`);
+  const docPending = targets.filter((t) => t.doc_pending).length;
+  logger.log(
+    `${targets.length} research records with ${totalPending} chunks awaiting vectors` +
+      `, ${docPending} awaiting title/abstract vectors`,
+  );
 
   let embedded = 0;
   let stopped = false;
