@@ -83,9 +83,6 @@
                       {{ confidenceLabel(turn.confidence.level) }}
                     </span>
                   </span>
-                  @if (turn.usage) {
-                    <span class="muted">· {{ turn.usage.model }} · {{ turn.usage.totalTokens }} tok · {{ turn.usage.latencyMs }}ms</span>
-                  }
                   @if (turn.invalidPages.length) {
                     <span class="badge-confidence low">· invalid page refs: {{ turn.invalidPages.join(', ') }}</span>
                   }

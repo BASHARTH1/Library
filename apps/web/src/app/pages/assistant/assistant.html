@@ -72,9 +72,6 @@
                 · {{ i18n.tf('papersSearched', turn.retrieval.papersSearched) }}
               </span>
             }
-            @if (turn.usage) {
-              <span class="muted">· {{ turn.usage.model }} · {{ turn.usage.totalTokens }} tok · {{ turn.usage.latencyMs }}ms</span>
-            }
             @if (turn.invalidPages.length) {
               <span class="badge-confidence low">· invalid refs: {{ turn.invalidPages.join(', ') }}</span>
             }
