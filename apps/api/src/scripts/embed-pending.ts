@@ -21,6 +21,10 @@ import { IngestService } from '../ingest/ingest.service';
 
 const REPO_ROOT = resolve(__dirname, '..', '..', '..', '..');
 loadEnv({ path: resolve(REPO_ROOT, '.env'), quiet: true });
+// Same reasoning as seed-auth: .env.local carries the Vercel-provisioned Neon
+// URL, and the corpus that the deployment serves lives there. Without the
+// override this backfills the local database while appearing to succeed.
+loadEnv({ path: resolve(REPO_ROOT, '.env.local'), override: true, quiet: true });
 
 async function main(): Promise<void> {
   const logger = new Logger('EmbedPending');

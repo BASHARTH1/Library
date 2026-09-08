@@ -381,13 +381,32 @@ export class IngestService {
     }
 
     // Document-level vectors used by title/abstract ranking and recommendations.
-    const titleText = [metadata?.titleAr, metadata?.titleEn].filter(Boolean).join(' ').trim();
+    //
+    // A backfill run (embed-pending) has no metadata to hand — the paper was
+    // ingested long ago — so fall back to the stored row. Without this the two
+    // blocks below silently no-op and the vectors are only ever written during
+    // a full ingestion, which is how they came to be missing for most papers.
+    const stored = metadata
+      ? null
+      : (
+          await this.dataSource.query<
+            Array<{ title_ar: string | null; title_en: string | null; abstract_ar: string | null; abstract_en: string | null }>
+          >(`SELECT title_ar, title_en, abstract_ar, abstract_en FROM research WHERE id = $1`, [researchId])
+        )[0] ?? null;
+
+    const titleText = [metadata?.titleAr ?? stored?.title_ar, metadata?.titleEn ?? stored?.title_en]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
     if (titleText.length > 0) {
       const [vector] = await this.gemini.embed([titleText], 'RETRIEVAL_DOCUMENT');
       await this.dataSource.query(`UPDATE research SET title_embedding = $1::vector WHERE id = $2`,
         [`[${vector.join(',')}]`, researchId]);
     }
-    const abstractText = [metadata?.abstractAr, metadata?.abstractEn].filter(Boolean).join('\n').trim();
+    const abstractText = [metadata?.abstractAr ?? stored?.abstract_ar, metadata?.abstractEn ?? stored?.abstract_en]
+      .filter(Boolean)
+      .join('\n')
+      .trim();
     if (abstractText.length > 0) {
       const [vector] = await this.gemini.embed([abstractText.slice(0, 8000)], 'RETRIEVAL_DOCUMENT');
       await this.dataSource.query(`UPDATE research SET abstract_embedding = $1::vector WHERE id = $2`,
