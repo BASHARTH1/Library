@@ -14,6 +14,13 @@
     </button>
   </div>
 
+  @if (!auth.isAuthenticated()) {
+    <p class="notice">
+      {{ i18n.t('aiRequiresAccount') }}
+      <a routerLink="/login" [queryParams]="{ redirect: '/assistant' }">{{ i18n.t('signInToUseAi') }}</a>
+    </p>
+  }
+
   <form class="assistant-input" (ngSubmit)="submit()">
     <input class="input" name="q"
            [ngModel]="query()" (ngModelChange)="query.set($event)"
@@ -71,6 +78,9 @@
                 {{ turn.retrieval.mode === 'semantic' ? i18n.t('retrievalSemantic') : i18n.t('retrievalLexical') }}
                 · {{ i18n.tf('papersSearched', turn.retrieval.papersSearched) }}
               </span>
+            }
+            @if (turn.usage) {
+              <span class="muted">· {{ turn.usage.model }} · {{ turn.usage.totalTokens }} tok · {{ turn.usage.latencyMs }}ms</span>
             }
             @if (turn.invalidPages.length) {
               <span class="badge-confidence low">· invalid refs: {{ turn.invalidPages.join(', ') }}</span>

@@ -102,6 +102,22 @@ h3 { font-size: 1.05rem; }
   font-size: 0.85rem;
 }
 .lang-toggle:hover { background: var(--gu-navy); border-color: var(--gu-navy); }
+.lang-toggle.ghost {
+  background: transparent;
+  color: var(--gu-navy);
+  border-color: var(--border);
+}
+.lang-toggle.ghost:hover { background: #eef2f7; color: var(--gu-navy); }
+
+.user-chip {
+  font-size: 0.85rem;
+  color: var(--muted);
+  max-inline-size: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 860px) { .user-chip { display: none; } }
 
 @media (max-width: 640px) {
   .brand-divider, .brand-sub { display: none; }

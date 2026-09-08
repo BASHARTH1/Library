@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import type { AnswerSource } from './api.service';
+import { AuthService } from './auth.service';
 
 export interface ChatFinal {
   conversationId: string;
@@ -29,6 +30,8 @@ export interface ChatCallbacks {
  */
 @Injectable({ providedIn: 'root' })
 export class ChatService {
+  private readonly auth = inject(AuthService);
+
   ask(
     body: { question: string; researchId?: string; conversationId?: string; generalKnowledge?: boolean },
     callbacks: ChatCallbacks,
@@ -37,15 +40,30 @@ export class ChatService {
 
     void (async () => {
       try {
+        // This uses raw fetch() for SSE, so Angular's HTTP interceptor never
+        // runs — the token must be attached explicitly or the request 401s.
+        const token = this.auth.accessToken;
         const response = await fetch('/api/chat/ask', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify(body),
           signal: controller.signal,
         });
 
         if (!response.ok || !response.body) {
-          callbacks.onError?.(`Request failed with status ${response.status}`);
+          if (response.status === 401) {
+            callbacks.onError?.('AUTH_REQUIRED');
+          } else if (response.status === 403) {
+            const detail = await response.json().catch(() => null);
+            callbacks.onError?.(
+              (detail as { message?: string })?.message ?? 'Not permitted or daily limit reached',
+            );
+          } else {
+            callbacks.onError?.(`Request failed with status ${response.status}`);
+          }
           return;
         }
 

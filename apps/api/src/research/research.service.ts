@@ -124,6 +124,31 @@ export class ResearchService {
     return this.search.similar(id, 6, isUniversityMember, isAdmin);
   }
 
+  /**
+   * Whether this viewer may open the file at all (spec §27).
+   *
+   * `view_only` and `download_disabled` still permit viewing in the browser;
+   * `abstract_only`, `restricted`, `confidential` and an unexpired embargo do not.
+   */
+  async canAccessFile(researchId: string, isUniversityMember: boolean, isAdmin: boolean): Promise<boolean> {
+    const [row] = await this.dataSource.query<Array<{ access_level: string; embargo_until: string | null }>>(
+      `SELECT access_level, embargo_until FROM research
+       WHERE id = $1 AND deleted_at IS NULL AND status = 'published'`,
+      [researchId],
+    );
+    if (!row) return false;
+    if (isAdmin) return true;
+
+    if (row.access_level === 'embargoed') {
+      return row.embargo_until !== null && new Date(row.embargo_until) <= new Date();
+    }
+
+    const openToAll = ['public', 'view_only', 'download_disabled'];
+    if (openToAll.includes(row.access_level)) return true;
+    if (row.access_level === 'university_only') return isUniversityMember;
+    return false;
+  }
+
   async canonicalFile(id: string): Promise<{ storedPath: string; originalFilename: string; mimeType: string } | null> {
     const [row] = await this.dataSource.query<Array<{ stored_path: string; original_filename: string; mime_type: string }>>(
       `SELECT stored_path, original_filename, mime_type FROM research_files

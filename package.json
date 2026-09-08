@@ -20,11 +20,16 @@
     "api:ingest-all": "npm run build --workspace apps/api && node apps/api/dist/scripts/ingest-all.js",
     "api:embed": "npm run build --workspace apps/api && node apps/api/dist/scripts/embed-pending.js",
     "api:ocr": "npm run build --workspace apps/api && node apps/api/dist/scripts/ocr-repair.js",
+    "api:seed-auth": "npm run build --workspace apps/api && node apps/api/dist/scripts/seed-auth.js",
     "web:dev": "npm run start --workspace apps/web",
     "web:build": "npm run build --workspace apps/web",
-    "dev": "node scripts/dev.mjs"
+    "dev": "node scripts/dev.mjs",
+    "vercel-build": "npm run build --workspace apps/api && npm run build --workspace apps/web"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@vercel/config": "^0.5.6"
   }
 }

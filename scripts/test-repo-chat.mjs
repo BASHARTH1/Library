@@ -1,10 +1,35 @@
 #!/usr/bin/env node
 /** Smoke test for the repository-wide assistant (no researchId => all papers). */
 const question = process.argv.slice(2).join(' ') || 'What is AI?';
+const API = process.env.API_URL ?? 'http://localhost:3100';
 
-const response = await fetch('http://localhost:3000/api/chat/ask', {
+// AI endpoints now require an account. Log in with the credentials in the
+// environment rather than embedding any password in the script.
+const email = process.env.API_EMAIL;
+const password = process.env.API_PASSWORD;
+let token = process.env.API_TOKEN ?? null;
+
+if (!token && email && password) {
+  const auth = await fetch(`${API}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!auth.ok) {
+    console.error(`login failed: HTTP ${auth.status} ${await auth.text()}`);
+    process.exit(1);
+  }
+  token = (await auth.json()).accessToken;
+}
+
+if (!token) {
+  console.error('Set API_EMAIL and API_PASSWORD (or API_TOKEN) — AI endpoints require authentication.');
+  process.exit(1);
+}
+
+const response = await fetch(`${API}/api/chat/ask`, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
   body: JSON.stringify({ question }),
 });
 

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { ApiService, type AnswerSource, type Stats } from '../../core/api.service';
 import { ChatService, type ChatFinal } from '../../core/chat.service';
 import { I18nService } from '../../core/i18n.service';
+import { AuthService } from '../../core/auth.service';
 
 export type AssistantMode = 'find' | 'ask';
 
@@ -60,6 +61,7 @@ export class AssistantPage {
   private readonly api = inject(ApiService);
   private readonly chat = inject(ChatService);
   readonly i18n = inject(I18nService);
+  readonly auth = inject(AuthService);
 
   readonly mode = signal<AssistantMode>('ask');
   readonly query = signal('');

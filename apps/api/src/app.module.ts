@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard, RolesGuard } from './auth/auth.guards';
 import { resolve } from 'node:path';
 import configuration, { type AppConfig } from './config/configuration';
 import { ALL_ENTITIES } from './database/entities';
@@ -28,10 +31,18 @@ import { OcrService } from './ingest/ocr.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService<AppConfig, true>) => {
         const db = config.get('database', { infer: true });
+
+        // Neon's connection pooler forces search_path='' and rejects every
+        // override, which breaks unqualified SQL — and this codebase uses raw
+        // queries throughout. DATABASE_URL_UNPOOLED reports a normal
+        // ["$user", public], so it is preferred when present. The pool is kept
+        // small because each serverless instance holds its own.
+        const url = process.env.DATABASE_URL_UNPOOLED?.trim() || db.url;
+
         return {
           type: 'postgres' as const,
-          ...(db.url
-            ? { url: db.url }
+          ...(url
+            ? { url }
             : {
                 host: db.host,
                 port: db.port,
@@ -39,7 +50,15 @@ import { OcrService } from './ingest/ocr.service';
                 username: db.username,
                 password: db.password,
               }),
-          ssl: db.ssl ? { rejectUnauthorized: false } : false,
+          ssl: db.ssl || /neon\.tech|supabase|amazonaws/.test(url ?? '')
+            ? { rejectUnauthorized: false }
+            : false,
+          extra: {
+            max: Number(process.env.DATABASE_POOL_MAX ?? 5),
+            connectionTimeoutMillis: 15000,
+            // Neon scales compute to zero; a cold start can take a few seconds.
+            idleTimeoutMillis: 30000,
+          },
           entities: ALL_ENTITIES,
           // The SQL schema file is authoritative; TypeORM must never alter it.
           synchronize: false,
@@ -49,9 +68,15 @@ import { OcrService } from './ingest/ocr.service';
     }),
     TypeOrmModule.forFeature(ALL_ENTITIES),
     GeminiModule,
+    AuthModule,
   ],
   controllers: [ResearchController, ChatController],
   providers: [
+    // Authentication is global: every route is protected unless it declares
+    // @Public() or @OptionalAuth(). A new endpoint cannot be exposed by
+    // forgetting to attach a guard.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
     SearchService,
     ResearchService,
     ChatService,

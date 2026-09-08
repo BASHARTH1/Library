@@ -1,0 +1,38 @@
+.auth-wrap {
+  display: flex;
+  justify-content: center;
+  padding-block: 2rem;
+}
+
+.auth-card {
+  inline-size: 100%;
+  max-inline-size: 430px;
+}
+.auth-card h1 { font-size: 1.35rem; margin-block-end: 0.2rem; }
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-block: 1rem;
+}
+.auth-tabs button {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font: inherit;
+  color: var(--gu-navy);
+  cursor: pointer;
+}
+.auth-tabs button.active {
+  background: #eef2f7;
+  border-color: var(--gu-blue);
+  font-weight: 600;
+}
+
+form { display: grid; gap: 0.8rem; }
+form label { display: grid; gap: 0.25rem; }
+form .btn { margin-block-start: 0.3rem; }
+
+.auth-foot { margin-block-start: 1rem; text-align: center; }

@@ -1,8 +1,10 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { IsBoolean, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from 'class-validator';
 import type { Request, Response } from 'express';
 import { ChatService } from './chat.service';
 import { AssistantService } from './assistant.service';
+import { AiUsageGuard } from '../auth/auth.guards';
+import { CurrentUser, RequirePermissions, type AuthenticatedUser } from '../auth/auth.types';
 
 export class AskDto {
   @IsString()
@@ -24,7 +26,14 @@ export class FindDto {
   @IsOptional() @IsInt() @Min(1) @Max(20) limit?: number;
 }
 
+/**
+ * Both AI endpoints require an account, the ai.chat permission, and available
+ * daily budget. They are the only routes that can spend money, so they carry
+ * the strictest checks in the application.
+ */
 @Controller('api/chat')
+@UseGuards(AiUsageGuard)
+@RequirePermissions('ai.chat')
 export class ChatController {
   constructor(
     private readonly chat: ChatService,
@@ -36,8 +45,14 @@ export class ChatController {
    * The result set comes from the database; the model only annotates it.
    */
   @Post('find')
-  find(@Body() body: FindDto) {
-    return this.assistant.find({ query: body.query, limit: body.limit });
+  find(@Body() body: FindDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.assistant.find({
+      query: body.query,
+      limit: body.limit,
+      userId: user.id,
+      isUniversityMember: user.isUniversityMember,
+      isAdmin: user.isAdmin,
+    });
   }
 
   /**
@@ -46,7 +61,12 @@ export class ChatController {
    * then a `final` payload with confidence and citation validation.
    */
   @Post('ask')
-  async ask(@Body() body: AskDto, @Req() req: Request, @Res() res: Response): Promise<void> {
+  async ask(
+    @Body() body: AskDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
@@ -68,6 +88,10 @@ export class ChatController {
         researchId: body.researchId,
         conversationId: body.conversationId,
         generalKnowledge: body.generalKnowledge,
+        // Retrieval is access-filtered by these before any chunk is read.
+        userId: user.id,
+        isUniversityMember: user.isUniversityMember,
+        isAdmin: user.isAdmin,
         signal: controller.signal,
       })) {
         switch (event.type) {

@@ -241,14 +241,18 @@ CREATE INDEX research_title_en_trgm     ON research USING gin (title_en gin_trgm
 CREATE INDEX research_title_embedding_idx    ON research USING hnsw (title_embedding vector_cosine_ops)    WITH (m = 16, ef_construction = 64);
 CREATE INDEX research_abstract_embedding_idx ON research USING hnsw (abstract_embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
 
+-- Trigger functions pin their own search_path and fully qualify the text search
+-- configuration. pg_dump emits `set_config('search_path','',false)` before data,
+-- and Neon's connection pooler forces an empty search_path, so an unqualified
+-- 'research_ar' resolves in neither case.
 CREATE OR REPLACE FUNCTION research_search_vector_update() RETURNS trigger AS $$
 BEGIN
   NEW.search_vector :=
-      setweight(to_tsvector('research_ar', coalesce(NEW.title_ar, '') || ' ' || coalesce(NEW.title_en, '')), 'A')
-    || setweight(to_tsvector('research_ar', coalesce(NEW.abstract_ar, '') || ' ' || coalesce(NEW.abstract_en, '')), 'B')
-    || setweight(to_tsvector('research_ar', coalesce(NEW.full_text, '')), 'D');
+      setweight(to_tsvector('public.research_ar'::regconfig, coalesce(NEW.title_ar, '') || ' ' || coalesce(NEW.title_en, '')), 'A')
+    || setweight(to_tsvector('public.research_ar'::regconfig, coalesce(NEW.abstract_ar, '') || ' ' || coalesce(NEW.abstract_en, '')), 'B')
+    || setweight(to_tsvector('public.research_ar'::regconfig, coalesce(NEW.full_text, '')), 'D');
   RETURN NEW;
-END $$ LANGUAGE plpgsql;
+END $$ LANGUAGE plpgsql SET search_path = public, pg_catalog;
 
 CREATE TRIGGER research_search_vector_trg
   BEFORE INSERT OR UPDATE OF title_ar, title_en, abstract_ar, abstract_en, full_text
@@ -364,9 +368,9 @@ CREATE INDEX research_chunks_search_vector_idx ON research_chunks USING gin (sea
 
 CREATE OR REPLACE FUNCTION research_chunks_search_vector_update() RETURNS trigger AS $$
 BEGIN
-  NEW.search_vector := to_tsvector('research_ar', coalesce(NEW.text, ''));
+  NEW.search_vector := to_tsvector('public.research_ar'::regconfig, coalesce(NEW.text, ''));
   RETURN NEW;
-END $$ LANGUAGE plpgsql;
+END $$ LANGUAGE plpgsql SET search_path = public, pg_catalog;
 
 CREATE TRIGGER research_chunks_search_vector_trg
   BEFORE INSERT OR UPDATE OF text ON research_chunks
@@ -693,7 +697,7 @@ CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger AS $$
 BEGIN
   NEW.updated_at := now();
   RETURN NEW;
-END $$ LANGUAGE plpgsql;
+END $$ LANGUAGE plpgsql SET search_path = public, pg_catalog;
 
 DO $$
 DECLARE t TEXT;

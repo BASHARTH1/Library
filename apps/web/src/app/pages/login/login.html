@@ -1,0 +1,55 @@
+<section class="auth-wrap">
+  <div class="card auth-card">
+    <h1>{{ mode() === 'login' ? i18n.t('signIn') : i18n.t('createAccount') }}</h1>
+    <p class="muted small">{{ i18n.t('authWhy') }}</p>
+
+    <div class="auth-tabs">
+      <button type="button" [class.active]="mode() === 'login'" (click)="setMode('login')">
+        {{ i18n.t('signIn') }}
+      </button>
+      <button type="button" [class.active]="mode() === 'register'" (click)="setMode('register')">
+        {{ i18n.t('createAccount') }}
+      </button>
+    </div>
+
+    <form (ngSubmit)="submit()">
+      @if (mode() === 'register') {
+        <label>
+          <span class="small muted">{{ i18n.t('fullName') }}</span>
+          <input class="input" name="fullName" autocomplete="name"
+                 [ngModel]="fullName()" (ngModelChange)="fullName.set($event)" />
+        </label>
+      }
+
+      <label>
+        <span class="small muted">{{ i18n.t('email') }}</span>
+        <input class="input" type="email" name="email" required autocomplete="email"
+               [ngModel]="email()" (ngModelChange)="email.set($event)" />
+      </label>
+
+      <label>
+        <span class="small muted">{{ i18n.t('password') }}</span>
+        <input class="input" type="password" name="password" required
+               [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+               [ngModel]="password()" (ngModelChange)="password.set($event)" />
+        @if (mode() === 'register') {
+          <span class="small muted">{{ i18n.t('passwordHint') }}</span>
+        }
+      </label>
+
+      @if (error()) {
+        <p class="notice small">{{ error() }}</p>
+      }
+
+      <button class="btn" type="submit" [disabled]="busy()">
+        @if (busy()) { <span class="spinner"></span> }
+        {{ mode() === 'login' ? i18n.t('signIn') : i18n.t('createAccount') }}
+      </button>
+    </form>
+
+    <p class="small muted auth-foot">
+      {{ i18n.t('browseWithoutAccount') }}
+      <a routerLink="/search">{{ i18n.t('search') }}</a>
+    </p>
+  </div>
+</section>

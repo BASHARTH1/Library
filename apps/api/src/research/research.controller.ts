@@ -1,11 +1,36 @@
 import { createReadStream, existsSync } from 'node:fs';
-import { Controller, Get, Header, NotFoundException, Param, ParseIntPipe, ParseUUIDPipe, Query, Res } from '@nestjs/common';
+import { Readable } from 'node:stream';
+import { get } from '@vercel/blob';
+import {
+  Controller,
+  ForbiddenException,
+  Get,
+  Header,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+  ParseUUIDPipe,
+  Query,
+  Res,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { ResearchService } from './research.service';
 import { SearchService, type SearchFilters } from '../search/search.service';
 import { ChatService } from '../chat/chat.service';
+import {
+  CurrentUser,
+  OptionalAuth,
+  RequirePermissions,
+  type AuthenticatedUser,
+} from '../auth/auth.types';
 
+/**
+ * Browsing and search work anonymously, but the viewer's identity still decides
+ * which access levels are visible — an anonymous caller sees only public
+ * research, a university member sees more (spec §27).
+ */
 @Controller('api')
+@OptionalAuth()
 export class ResearchController {
   constructor(
     private readonly research: ResearchService,
@@ -43,6 +68,7 @@ export class ResearchController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
     @Query('semantic') semantic?: string,
+    @CurrentUser() user?: AuthenticatedUser | null,
   ) {
     const filters: SearchFilters = {};
     if (year) filters.year = Number(year);
@@ -56,6 +82,8 @@ export class ResearchController {
       limit: limit ? Number(limit) : 20,
       offset: offset ? Number(offset) : 0,
       semantic: semantic !== 'false',
+      isUniversityMember: user?.isUniversityMember ?? false,
+      isAdmin: user?.isAdmin ?? false,
     });
   }
 
@@ -69,7 +97,9 @@ export class ResearchController {
     return this.research.similar(id, false, false);
   }
 
+  /** Generates via Gemini on a cache miss, so it is a billable route. */
   @Get('research/:id/suggested-questions')
+  @RequirePermissions('ai.chat')
   suggestedQuestions(@Param('id', ParseUUIDPipe) id: string) {
     return this.chat.suggestedQuestions(id);
   }
@@ -79,15 +109,54 @@ export class ResearchController {
     return this.research.page(id, page);
   }
 
-  /** Streams the canonical file for the in-browser viewer. */
+  /**
+   * Streams the canonical file for the in-browser viewer.
+   * The access level is re-checked here — a research id is guessable, so this
+   * must not rely on the caller having come from a permitted listing.
+   */
   @Get('research/:id/file')
   @Header('Cache-Control', 'private, max-age=3600')
-  async file(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response): Promise<void> {
+  async file(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser | null,
+    @Res() res: Response,
+  ): Promise<void> {
+    const allowed = await this.research.canAccessFile(
+      id,
+      user?.isUniversityMember ?? false,
+      user?.isAdmin ?? false,
+    );
+    if (!allowed) throw new ForbiddenException('You are not permitted to open this file');
+
     const file = await this.research.canonicalFile(id);
-    if (!file || !existsSync(file.storedPath)) throw new NotFoundException('File not available');
+    if (!file) throw new NotFoundException('File not available');
+
     res.setHeader('Content-Type', file.mimeType);
     // inline so the PDF renders in the viewer rather than downloading
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalFilename)}"`);
+
+    // Deployed, stored_path is a PRIVATE blob URL: it is fetched server-side
+    // with the store token and streamed only after the access check above, so
+    // possessing the URL grants nothing. Locally it is still a filesystem path.
+    if (file.storedPath.startsWith('http')) {
+      // A private blob cannot be fetched by URL alone — that is the point of
+      // choosing private storage. get() authenticates with the store token and
+      // returns a stream, which is piped only after the access check above.
+      const result = await get(file.storedPath, {
+        access: 'private',
+        token: process.env.BLOB_READ_WRITE_TOKEN,
+      });
+      // get() resolves to null when the blob is absent.
+      if (!result || result.statusCode !== 200 || !result.stream) {
+        throw new NotFoundException('File not available');
+      }
+      const length = result.headers.get('content-length');
+      if (length) res.setHeader('Content-Length', length);
+      Readable.fromWeb(result.stream as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
+      return;
+    }
+
+    if (!existsSync(file.storedPath)) throw new NotFoundException('File not available');
     createReadStream(file.storedPath).pipe(res);
   }
 }
