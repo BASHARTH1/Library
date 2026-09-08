@@ -20,6 +20,7 @@
     "api:ingest-all": "npm run build --workspace apps/api && node apps/api/dist/scripts/ingest-all.js",
     "api:embed": "npm run build --workspace apps/api && node apps/api/dist/scripts/embed-pending.js",
     "api:ocr": "npm run build --workspace apps/api && node apps/api/dist/scripts/ocr-repair.js",
+    "api:extract-abstracts": "npm run build --workspace apps/api && node apps/api/dist/scripts/extract-abstracts.js",
     "api:seed-auth": "npm run build --workspace apps/api && node apps/api/dist/scripts/seed-auth.js",
     "web:dev": "npm run start --workspace apps/web",
     "web:build": "npm run build --workspace apps/web",
