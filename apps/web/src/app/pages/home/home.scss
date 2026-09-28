@@ -39,16 +39,6 @@
 .assistant-cta:hover { background: rgba(255, 255, 255, 0.18); text-decoration: none; }
 .assistant-cta span { font-size: 0.82rem; color: #c5d4ea; }
 
-.hero-stats {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 2rem;
-  margin-block-start: 1.75rem;
-}
-.hero-stats div { display: flex; flex-direction: column; }
-.hero-stats strong { font-size: 1.5rem; color: var(--gu-gold); }
-.hero-stats span { font-size: 0.8rem; color: #c5d4ea; }
 
 .home-grid {
   display: grid;

@@ -25,15 +25,6 @@
     </a>
   </div>
 
-  @if (stats(); as s) {
-    <div class="hero-stats">
-      <div><strong>{{ s.research_count }}</strong><span>{{ i18n.t('researchCount') }}</span></div>
-      <div><strong>{{ s.author_count }}</strong><span>{{ i18n.t('authorCount') }}</span></div>
-      <div><strong>{{ s.faculty_count }}</strong><span>{{ i18n.t('facultyCount') }}</span></div>
-      <div><strong>{{ s.page_count }}</strong><span>{{ i18n.t('pageCount') }}</span></div>
-      <div><strong>{{ s.embedding_count }}</strong><span>{{ i18n.t('chunkCount') }}</span></div>
-    </div>
-  }
 </section>
 
 <div class="home-grid">
