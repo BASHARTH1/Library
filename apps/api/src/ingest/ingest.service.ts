@@ -4,7 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { GeminiService } from '../gemini/gemini.service';
-import { DocumentParserService, detectLanguage } from './document-parser.service';
+import { DocumentParserService, detectLanguage, type ParsedDocument } from './document-parser.service';
 import { StructureService } from './structure.service';
 
 export interface IngestInput {
@@ -38,6 +38,12 @@ export interface IngestOptions {
   additionalFiles?: string[];
   /** File whose text is used for chunking, when it differs from the display file. */
   textSourcePath?: string;
+  /**
+   * Ordered parts (front matter, chapters, references, appendices) of a thesis
+   * delivered as a folder of files. Their text is joined into one document.
+   * Takes precedence over textSourcePath.
+   */
+  textSourceParts?: string[];
 }
 
 export interface IngestResult {
@@ -147,6 +153,41 @@ export class IngestService {
     return chunks > 0 && chunks === embeddings;
   }
 
+  /**
+   * Parse each part of a multi-file thesis and join them in the given order,
+   * renumbering pages so they stay sequential across parts. A part that fails
+   * to parse is skipped with a warning; only a thesis where every part fails
+   * is an error.
+   */
+  private async parseParts(paths: string[]): Promise<ParsedDocument> {
+    const pages: ParsedDocument['pages'] = [];
+    const failures: string[] = [];
+    let textSource: ParsedDocument['textSource'] | null = null;
+
+    for (const partPath of paths) {
+      const part = await this.parser.parse(partPath, kindOf(partPath));
+      if (part.errors.length > 0 || part.pages.length === 0) {
+        failures.push(`${basename(partPath)}: ${part.errors.join('; ') || 'no text'}`);
+        continue;
+      }
+      textSource ??= part.textSource;
+      for (const page of part.pages) pages.push({ ...page, pageNumber: pages.length + 1 });
+    }
+
+    if (failures.length > 0) this.logger.warn(`Skipped ${failures.length} unreadable part(s): ${failures.join(' | ').slice(0, 300)}`);
+    if (pages.length === 0) {
+      return { pages: [], fullText: '', pageCount: 0, isEncrypted: false, textSource: 'word_text_layer', errors: failures };
+    }
+    return {
+      pages,
+      fullText: pages.map((p) => p.text).join('\n\n'),
+      pageCount: pages.length,
+      isEncrypted: false,
+      textSource: textSource ?? 'word_text_layer',
+      errors: [],
+    };
+  }
+
   /** Full pipeline for one file: parse → sections → chunks → embeddings → indexed. */
   async ingestFile(input: IngestInput, options: IngestOptions = {}): Promise<IngestResult> {
     const path = input.absolutePath;
@@ -156,8 +197,9 @@ export class IngestService {
 
     // Text may come from a cleaner twin (e.g. the Word source of a corrupted PDF)
     // while the PDF remains the file shown in the viewer.
-    const textPath = options.textSourcePath ?? path;
-    const parsed = await this.parser.parse(textPath, kindOf(textPath));
+    const parsed = options.textSourceParts?.length
+      ? await this.parseParts(options.textSourceParts)
+      : await this.parser.parse(options.textSourcePath ?? path, kindOf(options.textSourcePath ?? path));
     if (parsed.errors.length > 0) throw new Error(parsed.errors.join('; '));
 
     const info = await stat(path);

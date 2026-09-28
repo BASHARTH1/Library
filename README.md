@@ -62,6 +62,30 @@ which is ~16 days for the backlog. Enable billing to do it in one pass. Until
 then full-text search, browsing, metadata and the PDF viewer work across the
 whole corpus; semantic search and AI chat only cover the embedded papers.
 
+### Adding a new batch of theses
+
+Each delivery is inspected into its own set of reports (`--batch NAME`) and
+loaded straight into Neon, the database the deployment serves. Do **not** use
+`scripts/migrate-to-neon.sh` for this: it truncates every Neon table, which
+would wipe extracted abstracts, OCR repairs, users and conversations.
+
+```powershell
+$src = "C:\Users\Bashar\Desktop\رسائل ماجستير-الدفعة الثانية"
+npx tsx tools/inspector/src/inspect-folder.ts --source $src --batch batch2
+npx tsx tools/inspector/src/diagnose-arabic.ts --batch batch2
+npm run api:ingest-all -- --batch batch2 --dry-run   # review reports/ingest-plan-batch2.json
+npm run api:ingest-all -- --batch batch2
+npm run api:ocr                                      # before the upload: OCR reads from disk
+npm run api:upload-r2
+npm run api:extract-abstracts
+npm run api:embed
+```
+
+A thesis may arrive as one file, as a PDF + Word pair, or as a folder of parts
+(cover, chapters, references, appendices). A folder is one thesis: a complete
+PDF/Word inside it is used when there is one, otherwise the parts are joined in
+reading order. Theses that exist only as scans are listed and skipped.
+
 ## Repository layout
 
 ```

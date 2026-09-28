@@ -5,7 +5,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { env } from './lib/env.js';
+import { reportName } from './lib/env.js';
 import { extractDocument } from './lib/file-analysis.js';
 import { repairArabic, scoreCorruption } from './lib/arabic-repair.js';
 import { writeJson, writeWorkbook } from './lib/report.js';
@@ -13,7 +13,7 @@ import type { FolderAnalysisReport } from './lib/types.js';
 
 async function main(): Promise<void> {
   const report = JSON.parse(
-    await readFile(resolve(env.reportsDir, 'folder-analysis.json'), 'utf8'),
+    await readFile(reportName('folder-analysis', 'json'), 'utf8'),
   ) as FolderAnalysisReport;
 
   const rows: Array<Record<string, unknown>> = [];
@@ -24,6 +24,7 @@ async function main(): Promise<void> {
     const score = scoreCorruption(extraction.fullText);
     rows.push({
       filename: file.originalFilename,
+      relativePath: file.relativePath,
       kind: file.kind,
       faculty: file.facultyFolder,
       language: file.detectedLanguage,
@@ -66,8 +67,8 @@ async function main(): Promise<void> {
     console.log(`      ${String(row.sampleBefore).slice(0, 120)}`);
   }
 
-  await writeJson(resolve(env.reportsDir, 'arabic-diagnosis.json'), { generatedAt: new Date().toISOString(), bySeverity, byKindSeverity, rows });
-  await writeWorkbook(resolve(env.reportsDir, 'arabic-diagnosis.xlsx'), [
+  await writeJson(reportName('arabic-diagnosis', 'json'), { generatedAt: new Date().toISOString(), bySeverity, byKindSeverity, rows });
+  await writeWorkbook(reportName('arabic-diagnosis', 'xlsx'), [
     {
       name: 'Text quality',
       columns: [
@@ -87,7 +88,7 @@ async function main(): Promise<void> {
       rows,
     },
   ]);
-  console.log(`\nWrote ${resolve(env.reportsDir, 'arabic-diagnosis.xlsx')}`);
+  console.log(`\nWrote ${reportName('arabic-diagnosis', 'xlsx')}`);
 }
 
 main().catch((error) => {

@@ -308,16 +308,23 @@ export function parsePathContext(sourceDir: string, absolutePath: string): {
   relativePath: string;
   facultyFolder: string | null;
   yearFolder: number | null;
+  thesisFolder: string | null;
 } {
   const relativePath = relative(sourceDir, absolutePath);
   const segments = relativePath.split(sep);
   const facultyFolder = segments.length > 1 ? segments[0] : null;
   let yearFolder: number | null = null;
-  for (const segment of segments.slice(0, -1)) {
+  let yearIndex = -1;
+  segments.slice(0, -1).forEach((segment, index) => {
     const year = Number(segment);
-    if (Number.isInteger(year) && year >= 1970 && year <= 2100) yearFolder = year;
-  }
-  return { relativePath, facultyFolder, yearFolder };
+    if (Number.isInteger(year) && year >= 1970 && year <= 2100) {
+      yearFolder = year;
+      yearIndex = index;
+    }
+  });
+  // <faculty>/<year>/<thesis folder>/.../<part>.doc
+  const thesisFolder = yearIndex !== -1 && segments.length - yearIndex > 2 ? segments[yearIndex + 1].trim() : null;
+  return { relativePath, facultyFolder, yearFolder, thesisFolder };
 }
 
 export async function fileTimestamps(path: string): Promise<{ createdAt: string; modifiedAt: string; sizeBytes: number }> {

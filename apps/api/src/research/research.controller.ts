@@ -1,6 +1,7 @@
 import { createReadStream, existsSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import { get } from '@vercel/blob';
+import { getR2Object, isR2Path } from '../files/r2';
 import {
   Controller,
   ForbiddenException,
@@ -139,7 +140,17 @@ export class ResearchController {
     // inline so the PDF renders in the viewer rather than downloading
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalFilename)}"`);
 
-    // Deployed, stored_path is a PRIVATE blob URL: it is fetched server-side
+    // Deployed, stored_path is an object in the PRIVATE R2 bucket, streamed only
+    // after the access check above.
+    if (isR2Path(file.storedPath)) {
+      const object = await getR2Object(file.storedPath);
+      if (!object) throw new NotFoundException('File not available');
+      if (object.length !== undefined) res.setHeader('Content-Length', String(object.length));
+      object.stream.pipe(res);
+      return;
+    }
+
+    // Older deployments used a PRIVATE Vercel Blob URL: it is fetched server-side
     // with the store token and streamed only after the access check above, so
     // possessing the URL grants nothing. Locally it is still a filesystem path.
     if (file.storedPath.startsWith('http')) {

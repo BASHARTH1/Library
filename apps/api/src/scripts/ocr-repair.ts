@@ -30,6 +30,8 @@ import { detectLanguage } from '../ingest/document-parser.service';
 
 const REPO_ROOT = resolve(__dirname, '..', '..', '..', '..');
 loadEnv({ path: resolve(REPO_ROOT, '.env'), quiet: true });
+// Same target as ingest-all: the Neon corpus the deployment serves.
+loadEnv({ path: resolve(REPO_ROOT, '.env.local'), override: true, quiet: true });
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -82,6 +84,9 @@ async function main(): Promise<void> {
      JOIN research_files f ON f.research_id = r.id AND f.is_canonical AND f.deleted_at IS NULL
      WHERE r.deleted_at IS NULL
        AND f.file_kind = 'pdf'
+       -- OCR reads the PDF from disk, so it runs between ingest-all and
+       -- upload-files-to-blob; files already moved to blob are done.
+       AND f.stored_path NOT LIKE 'http%'
        ${onlyResearch ? 'AND r.id = $1::uuid' : ''}
      ORDER BY r.created_at`,
     onlyResearch ? [onlyResearch] : [],

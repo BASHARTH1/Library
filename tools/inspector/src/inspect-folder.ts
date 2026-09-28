@@ -9,7 +9,7 @@
  */
 import { readdir } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
-import { env } from './lib/env.js';
+import { env, reportName } from './lib/env.js';
 import {
   classifyExtension,
   detectLanguage,
@@ -26,7 +26,14 @@ import { writeJson, writeWorkbook } from './lib/report.js';
 import type { DuplicateGroup, FileInventoryRecord, FolderAnalysisReport } from './lib/types.js';
 
 async function walk(dir: string): Promise<string[]> {
-  const entries = await readdir(dir, { withFileTypes: true });
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch (error) {
+    // e.g. a folder whose name ends in a space, which Win32 cannot open.
+    console.warn(`  SKIPPED unreadable folder ${dir}: ${(error as Error).message}`);
+    return [];
+  }
   const files: string[] = [];
   for (const entry of entries) {
     const full = join(dir, entry.name);
@@ -53,13 +60,15 @@ function tally(records: FileInventoryRecord[], pick: (r: FileInventoryRecord) =>
 async function inspectFile(sourceDir: string, absolutePath: string): Promise<FileInventoryRecord> {
   const extension = extname(absolutePath).toLowerCase();
   const kind = classifyExtension(extension);
-  const { relativePath, facultyFolder, yearFolder } = parsePathContext(sourceDir, absolutePath);
+  const { relativePath, facultyFolder, yearFolder, thesisFolder } = parsePathContext(sourceDir, absolutePath);
   const originalFilename = absolutePath.split(/[\\/]/).pop() ?? absolutePath;
   const { createdAt, modifiedAt, sizeBytes } = await fileTimestamps(absolutePath);
   const sha256 = await sha256File(absolutePath);
   const magicType = await detectMagicType(absolutePath);
   const extensionMatchesMagic = magicMatchesKind(kind, magicType);
-  const { title, author } = parseFilename(originalFilename);
+  // A part inside a thesis folder is named "ف2.doc"; the folder carries the
+  // "<title>-<author>" convention instead.
+  const { title, author } = parseFilename(thesisFolder ?? originalFilename);
 
   const extraction = await extractDocument(absolutePath, kind);
   const scannedPageCount = extraction.pages.filter((p) => p.likelyScanned).length;
@@ -90,6 +99,7 @@ async function inspectFile(sourceDir: string, absolutePath: string): Promise<Fil
     sha256,
     facultyFolder,
     yearFolder,
+    thesisFolder,
     filenameTitleGuess: title,
     filenameAuthorGuess: author,
     magicType,
@@ -140,6 +150,7 @@ async function main(): Promise<void> {
         sha256: '',
         facultyFolder: null,
         yearFolder: null,
+        thesisFolder: null,
         filenameTitleGuess: null,
         filenameAuthorGuess: null,
         magicType: null,
@@ -191,8 +202,8 @@ async function main(): Promise<void> {
     files: records,
   };
 
-  const jsonPath = resolve(env.reportsDir, 'folder-analysis.json');
-  const xlsxPath = resolve(env.reportsDir, 'folder-analysis.xlsx');
+  const jsonPath = reportName('folder-analysis', 'json');
+  const xlsxPath = reportName('folder-analysis', 'xlsx');
   await writeJson(jsonPath, report);
   await writeWorkbook(xlsxPath, [
     {
@@ -202,6 +213,7 @@ async function main(): Promise<void> {
         { header: 'Filename', key: 'originalFilename', width: 70 },
         { header: 'Faculty (folder)', key: 'facultyFolder', width: 24 },
         { header: 'Year (folder)', key: 'yearFolder', width: 12 },
+        { header: 'Thesis folder', key: 'thesisFolder', width: 50 },
         { header: 'Type', key: 'kind', width: 8 },
         { header: 'Size MB', key: 'sizeMb', width: 10 },
         { header: 'Pages', key: 'pageCount', width: 8 },

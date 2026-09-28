@@ -9,7 +9,11 @@
  * Resumable: a file whose stored_path is already a blob URL is skipped, so an
  * interrupted run can simply be repeated.
  *
- * Usage: node dist/scripts/upload-files-to-blob.js [--dry-run] [--limit N] [--concurrency N]
+ * Only canonical files are uploaded by default: the viewer serves nothing
+ * else, and Word twins / chapter parts would double the storage used. Pass
+ * --all to upload those too.
+ *
+ * Usage: node dist/scripts/upload-files-to-blob.js [--dry-run] [--all] [--limit N] [--concurrency N]
  */
 import 'reflect-metadata';
 import { readFile, stat } from 'node:fs/promises';
@@ -71,7 +75,8 @@ async function main(): Promise<void> {
 
   const rows = await dataSource.query<FileRow[]>(
     `SELECT id, research_id, original_filename, stored_path, mime_type, sha256
-     FROM research_files WHERE deleted_at IS NULL ORDER BY original_filename`,
+     FROM research_files WHERE deleted_at IS NULL ${process.argv.includes('--all') ? '' : 'AND is_canonical'}
+     ORDER BY original_filename`,
   );
 
   const pending = rows.filter((r) => !r.stored_path.startsWith('http'));

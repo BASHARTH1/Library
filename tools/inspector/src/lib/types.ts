@@ -37,6 +37,11 @@ export interface FileInventoryRecord {
   facultyFolder: string | null;
   /** Year inferred from folder structure (level 2). */
   yearFolder: number | null;
+  /**
+   * Folder below the year that holds this file, when a thesis was delivered as
+   * a folder of parts (chapters, appendices) instead of a single file.
+   */
+  thesisFolder: string | null;
   /** Title guessed from the "<title>-<author>.ext" filename convention. */
   filenameTitleGuess: string | null;
   filenameAuthorGuess: string | null;
