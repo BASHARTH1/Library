@@ -22,6 +22,9 @@ import { AuthService } from './core/auth.service';
         <a routerLink="/">{{ i18n.t('home') }}</a>
         <a routerLink="/search">{{ i18n.t('search') }}</a>
         <a routerLink="/assistant">{{ i18n.t('aiAssistant') }}</a>
+        @if (auth.canManage()) {
+          <a routerLink="/admin">{{ i18n.t('adminArea') }}</a>
+        }
 
         <!--
           No sign-in link: the repository and the assistant are open to

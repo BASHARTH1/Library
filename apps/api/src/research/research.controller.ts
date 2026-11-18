@@ -1,7 +1,4 @@
-import { createReadStream, existsSync } from 'node:fs';
-import { Readable } from 'node:stream';
-import { get } from '@vercel/blob';
-import { getR2Object, isR2Path } from '../files/r2';
+import { streamStoredFile } from '../files/serve';
 import {
   Controller,
   ForbiddenException,
@@ -136,42 +133,6 @@ export class ResearchController {
     const file = await this.research.canonicalFile(id);
     if (!file) throw new NotFoundException('File not available');
 
-    res.setHeader('Content-Type', file.mimeType);
-    // inline so the PDF renders in the viewer rather than downloading
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalFilename)}"`);
-
-    // Deployed, stored_path is an object in the PRIVATE R2 bucket, streamed only
-    // after the access check above.
-    if (isR2Path(file.storedPath)) {
-      const object = await getR2Object(file.storedPath);
-      if (!object) throw new NotFoundException('File not available');
-      if (object.length !== undefined) res.setHeader('Content-Length', String(object.length));
-      object.stream.pipe(res);
-      return;
-    }
-
-    // Older deployments used a PRIVATE Vercel Blob URL: it is fetched server-side
-    // with the store token and streamed only after the access check above, so
-    // possessing the URL grants nothing. Locally it is still a filesystem path.
-    if (file.storedPath.startsWith('http')) {
-      // A private blob cannot be fetched by URL alone — that is the point of
-      // choosing private storage. get() authenticates with the store token and
-      // returns a stream, which is piped only after the access check above.
-      const result = await get(file.storedPath, {
-        access: 'private',
-        token: process.env.BLOB_READ_WRITE_TOKEN,
-      });
-      // get() resolves to null when the blob is absent.
-      if (!result || result.statusCode !== 200 || !result.stream) {
-        throw new NotFoundException('File not available');
-      }
-      const length = result.headers.get('content-length');
-      if (length) res.setHeader('Content-Length', length);
-      Readable.fromWeb(result.stream as Parameters<typeof Readable.fromWeb>[0]).pipe(res);
-      return;
-    }
-
-    if (!existsSync(file.storedPath)) throw new NotFoundException('File not available');
-    createReadStream(file.storedPath).pipe(res);
+    await streamStoredFile(file, res);
   }
 }

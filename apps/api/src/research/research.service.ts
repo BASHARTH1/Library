@@ -24,8 +24,8 @@ export class ResearchService {
             WHERE NOT EXISTS (
               SELECT 1 FROM research_embeddings e WHERE e.chunk_id = c.id AND e.model = $1)
          ) AS pending_embedding_count,
-         (SELECT COALESCE(sum(total_pages),0) FROM research WHERE deleted_at IS NULL) AS page_count,
-         (SELECT COALESCE(sum(view_count),0) FROM research WHERE deleted_at IS NULL) AS view_count`,
+         (SELECT COALESCE(sum(total_pages),0) FROM research WHERE deleted_at IS NULL AND status='published') AS page_count,
+         (SELECT COALESCE(sum(view_count),0) FROM research WHERE deleted_at IS NULL AND status='published') AS view_count`,
       [process.env.GEMINI_EMBEDDING_MODEL ?? 'gemini-embedding-001'],
     );
     return Object.fromEntries(Object.entries(row).map(([k, v]) => [k, Number(v)]));
@@ -35,18 +35,18 @@ export class ResearchService {
     const [faculties, years, languages, departments] = await Promise.all([
       this.dataSource.query(
         `SELECT f.id, f.name_ar AS name, count(r.id)::int AS count
-         FROM faculties f LEFT JOIN research r ON r.faculty_id = f.id AND r.deleted_at IS NULL
+         FROM faculties f LEFT JOIN research r ON r.faculty_id = f.id AND r.deleted_at IS NULL AND r.status='published'
          WHERE f.deleted_at IS NULL GROUP BY f.id, f.name_ar ORDER BY count DESC`),
       this.dataSource.query(
         `SELECT publication_year AS year, count(*)::int AS count FROM research
-         WHERE deleted_at IS NULL AND publication_year IS NOT NULL
+         WHERE deleted_at IS NULL AND status='published' AND publication_year IS NOT NULL
          GROUP BY publication_year ORDER BY publication_year DESC`),
       this.dataSource.query(
         `SELECT language, count(*)::int AS count FROM research
-         WHERE deleted_at IS NULL GROUP BY language ORDER BY count DESC`),
+         WHERE deleted_at IS NULL AND status='published' GROUP BY language ORDER BY count DESC`),
       this.dataSource.query(
         `SELECT d.id, d.name_ar AS name, count(r.id)::int AS count
-         FROM departments d LEFT JOIN research r ON r.department_id = d.id AND r.deleted_at IS NULL
+         FROM departments d LEFT JOIN research r ON r.department_id = d.id AND r.deleted_at IS NULL AND r.status='published'
          WHERE d.deleted_at IS NULL GROUP BY d.id, d.name_ar ORDER BY count DESC`),
     ]);
     return { faculties, years, languages, departments };
@@ -78,7 +78,7 @@ export class ResearchService {
        FROM research r
        LEFT JOIN faculties f ON f.id = r.faculty_id
        LEFT JOIN departments d ON d.id = r.department_id
-       WHERE r.id = $1 AND r.deleted_at IS NULL`, [id]);
+       WHERE r.id = $1 AND r.deleted_at IS NULL AND r.status = 'published'`, [id]);
     if (!research) throw new NotFoundException(`Research ${id} not found`);
 
     const [authors, keywords, sections, files] = await Promise.all([
@@ -114,7 +114,9 @@ export class ResearchService {
 
   async page(researchId: string, pageNumber: number): Promise<{ pageNumber: number; text: string }> {
     const [row] = await this.dataSource.query<Array<{ page_number: number; text: string }>>(
-      `SELECT page_number, text FROM research_pages WHERE research_id = $1 AND page_number = $2 LIMIT 1`,
+      `SELECT p.page_number, p.text FROM research_pages p
+       JOIN research r ON r.id = p.research_id AND r.deleted_at IS NULL AND r.status = 'published'
+       WHERE p.research_id = $1 AND p.page_number = $2 LIMIT 1`,
       [researchId, pageNumber]);
     if (!row) throw new NotFoundException(`Page ${pageNumber} not found`);
     return { pageNumber: row.page_number, text: row.text };

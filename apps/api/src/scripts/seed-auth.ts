@@ -107,6 +107,7 @@ async function main(): Promise<void> {
   logger.log(`${ROLES.length} roles ensured with permission grants`);
 
   // ---- first administrator ----
+  // ADMIN_EMAIL may also be a plain username such as "admin"; sign-in accepts either.
   const email = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD ?? '';
 

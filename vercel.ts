@@ -9,9 +9,10 @@ import { routes, type VercelConfig } from '@vercel/config/v1';
  * The API and the SPA share one origin, so the browser needs no CORS handling
  * and the Gemini key stays entirely server-side.
  *
- * Not deployed here: OCR, ingestion and embedding backfill. Those runs take
- * 20-45 minutes, far beyond any function timeout, and remain local/CI scripts
- * under apps/api/src/scripts.
+ * Not deployed here: bulk OCR, ingestion and embedding backfill over the whole
+ * corpus. Those runs take 20-45 minutes, far beyond any function timeout, and
+ * remain local/CI scripts under apps/api/src/scripts. A single thesis added from
+ * the admin page does run here, as a series of bounded steps.
  */
 export const config: VercelConfig = {
   framework: null,
@@ -22,8 +23,13 @@ export const config: VercelConfig = {
   functions: {
     'api/index.ts': {
       // Chat answers stream for 15-25s; comparisons over several papers longer.
-      maxDuration: 120,
+      // A thesis processing step is budgeted at 60s, but one slow Gemini call
+      // can overrun that, so the limit leaves it room to finish.
+      maxDuration: 300,
       memory: 1769,
+      // OcrService loads mupdf through new Function() to keep a real ESM import,
+      // and pdfjs loads its worker by path. File tracing cannot see either.
+      includeFiles: '{node_modules/mupdf/**,node_modules/pdfjs-dist/legacy/build/**}',
     },
   },
 

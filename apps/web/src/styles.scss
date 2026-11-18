@@ -66,6 +66,12 @@ h3 { font-size: 1.05rem; }
   top: 0;
   z-index: 40;
 }
+/* The nav has no room beside the logo on a phone, and more links once signed in. */
+@media (max-width: 900px) {
+  .site-header { flex-wrap: wrap; padding-inline: 1rem; }
+  .site-nav { flex-wrap: wrap; gap: 0.35rem 0.9rem; }
+  .user-chip { max-inline-size: 100%; }
+}
 .brand { display: flex; align-items: center; gap: 0.7rem; text-decoration: none; }
 .brand:hover { text-decoration: none; }
 .brand-logo {

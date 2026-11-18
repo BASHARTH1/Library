@@ -5,9 +5,9 @@
  * is created once per warm instance and reused — Fluid Compute keeps instances
  * alive across requests, so cold-start cost is paid rarely rather than per call.
  *
- * Long-running work (OCR, ingestion, embedding backfill) is deliberately NOT
- * reachable from here: those runs take 20-45 minutes and exceed any function
- * timeout. They stay as local/CI scripts under apps/api/src/scripts.
+ * Bulk work over the whole corpus (OCR, ingestion, embedding backfill) is
+ * deliberately NOT reachable from here: those runs take 20-45 minutes and exceed
+ * any function timeout. They stay as local/CI scripts under apps/api/src/scripts.
  */
 import 'reflect-metadata';
 import { ValidationPipe } from '@nestjs/common';

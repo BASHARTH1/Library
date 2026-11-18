@@ -13,6 +13,9 @@ const AUTH_ENDPOINTS = ['/api/auth/login', '/api/auth/register', '/api/auth/refr
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
+  // Direct uploads go to a presigned storage URL, which must never see the token.
+  if (!req.url.startsWith('/api/')) return next(req);
+
   const isAuthCall = AUTH_ENDPOINTS.some((path) => req.url.includes(path));
   const token = auth.accessToken;
 

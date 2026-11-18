@@ -1,4 +1,5 @@
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { Readable } from 'node:stream';
 
 /**
@@ -22,12 +23,20 @@ function r2(): S3Client {
     region: 'auto',
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: { accessKeyId, secretAccessKey },
+    // The SDK otherwise signs a CRC32 checksum into presigned URLs, which the
+    // browser cannot supply, so the upload is rejected.
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
   });
   return client;
 }
 
 function bucket(): string {
   return process.env.R2_BUCKET ?? 'gulf-research-files';
+}
+
+export function isR2Configured(): boolean {
+  return Boolean(process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY);
 }
 
 export function isR2Path(storedPath: string): boolean {
@@ -37,6 +46,17 @@ export function isR2Path(storedPath: string): boolean {
 export async function putR2Object(key: string, body: Buffer, contentType: string): Promise<string> {
   await r2().send(new PutObjectCommand({ Bucket: bucket(), Key: key, Body: body, ContentType: contentType }));
   return `${R2_SCHEME}${key}`;
+}
+
+/**
+ * A short-lived URL the browser can PUT one file to directly. Theses are far
+ * larger than the 4.5 MB a Vercel Function accepts as a request body, so they
+ * cannot pass through the API. Needs a CORS rule on the bucket (scripts/r2-cors).
+ */
+export async function presignR2Put(key: string, contentType: string, expiresInSeconds = 900): Promise<string> {
+  return getSignedUrl(r2(), new PutObjectCommand({ Bucket: bucket(), Key: key, ContentType: contentType }), {
+    expiresIn: expiresInSeconds,
+  });
 }
 
 export async function getR2Object(storedPath: string): Promise<{ stream: Readable; length: number | undefined } | null> {

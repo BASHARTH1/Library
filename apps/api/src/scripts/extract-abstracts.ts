@@ -26,6 +26,7 @@ import { Logger } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../app.module';
 import { GeminiService } from '../gemini/gemini.service';
+import { cameFromSource } from '../ingest/provenance';
 
 const REPO_ROOT = resolve(__dirname, '..', '..', '..', '..');
 loadEnv({ path: resolve(REPO_ROOT, '.env'), quiet: true });
@@ -39,8 +40,6 @@ const MIN_ABSTRACT_CHARS = 200;
 const MAX_ABSTRACT_CHARS = 6000;
 /** Enough context to cover a title page, a TOC and the abstract that follows. */
 const MAX_CONTEXT_CHARS = 24000;
-/** How much of the opening must appear in the source for the text to be real. */
-const PROVENANCE_PROBE_CHARS = 40;
 
 const SYSTEM_INSTRUCTION = `You extract abstracts from Arabic and English master's theses.
 
@@ -69,23 +68,6 @@ const RESPONSE_SCHEMA = {
 interface Extracted {
   abstractAr: string | null;
   abstractEn: string | null;
-}
-
-/** Whitespace is unreliable in OCR text, so compare with it removed. */
-function normalise(text: string): string {
-  return text.replace(/\s+/gu, '');
-}
-
-/**
- * True when the extracted text demonstrably came from the source.
- *
- * The opening is probed rather than the whole string: the model legitimately
- * drops a trailing keywords line or a page number, but it has no reason to
- * change the first words of a passage it was told to copy.
- */
-function cameFromSource(candidate: string, source: string): boolean {
-  const probe = normalise(candidate).slice(0, PROVENANCE_PROBE_CHARS);
-  return probe.length > 0 && normalise(source).includes(probe);
 }
 
 function clean(value: string | null, source: string, logger: Logger, label: string): string | null {

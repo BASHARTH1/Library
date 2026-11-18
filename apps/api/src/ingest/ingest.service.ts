@@ -58,7 +58,7 @@ export interface IngestResult {
   embeddingError: string | null;
 }
 
-function normalizeName(name: string): string {
+export function normalizeName(name: string): string {
   return name
     .toLowerCase()
     .replace(/[إأآا]/g, 'ا')
@@ -69,12 +69,12 @@ function normalizeName(name: string): string {
     .trim();
 }
 
-function kindOf(path: string): string {
+export function kindOf(path: string): string {
   const ext = extname(path).toLowerCase();
   return ext === '.pdf' ? 'pdf' : ext === '.docx' ? 'docx' : ext === '.doc' ? 'doc' : 'unknown';
 }
 
-const MIME: Record<string, string> = {
+export const MIME: Record<string, string> = {
   pdf: 'application/pdf',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   doc: 'application/msword',
@@ -118,7 +118,7 @@ export class IngestService {
     return inserted[0].id;
   }
 
-  private async upsertAuthor(name: string, facultyId: string | null): Promise<string> {
+  async upsertAuthor(name: string, facultyId: string | null): Promise<string> {
     const normalized = normalizeName(name);
     const isArabic = /[؀-ۿ]/.test(name);
     const existing = await this.dataSource.query<Array<{ id: string }>>(
@@ -374,7 +374,11 @@ export class IngestService {
   async embedResearch(
     researchId: string,
     metadata?: Partial<IngestInput['metadata']>,
-  ): Promise<{ embedded: number; tokens: number }> {
+    options: {
+      /** Stop starting new batches at this time (ms) so the call fits a function timeout. */
+      deadline?: number;
+    } = {},
+  ): Promise<{ embedded: number; tokens: number; remaining: number }> {
     const model = process.env.GEMINI_EMBEDDING_MODEL ?? 'gemini-embedding-001';
 
     const pending = await this.dataSource.query<Array<{ id: string; text: string; token_count: number }>>(
@@ -393,7 +397,13 @@ export class IngestService {
     const started = Date.now();
     const BATCH = Number(process.env.GEMINI_EMBED_BATCH ?? 16);
 
+    let remaining = 0;
+
     for (let i = 0; i < pending.length; i += BATCH) {
+      if (options.deadline !== undefined && Date.now() >= options.deadline) {
+        remaining = pending.length - i;
+        break;
+      }
       const slice = pending.slice(i, i + BATCH);
       const vectors = await this.gemini.embed(slice.map((c) => c.text), 'RETRIEVAL_DOCUMENT');
 
@@ -422,12 +432,31 @@ export class IngestService {
       }
     }
 
-    // Document-level vectors used by title/abstract ranking and recommendations.
-    //
-    // A backfill run (embed-pending) has no metadata to hand — the paper was
-    // ingested long ago — so fall back to the stored row. Without this the two
-    // blocks below silently no-op and the vectors are only ever written during
-    // a full ingestion, which is how they came to be missing for most papers.
+    // A later call finishes the chunks, then writes the document-level vectors.
+    if (remaining === 0) await this.embedDocumentVectors(researchId, metadata);
+
+    // Record spend. Without this, embedding and OCR cost is invisible and can
+    // only be reconstructed after the fact from row counts.
+    if (embedded > 0) {
+      await this.dataSource.query(
+        `INSERT INTO ai_usage_logs (research_id, operation, model, prompt_tokens, total_tokens, latency_ms, succeeded)
+         VALUES ($1,'embedding',$2,$3,$3,$4,true)`,
+        [researchId, model, tokens, Date.now() - started],
+      );
+    }
+
+    return { embedded, tokens, remaining };
+  }
+
+  /**
+   * Document-level vectors used by title/abstract ranking and recommendations.
+   *
+   * A backfill run (embed-pending) has no metadata to hand — the paper was
+   * ingested long ago — so fall back to the stored row. Without this the two
+   * blocks below silently no-op and the vectors are only ever written during
+   * a full ingestion, which is how they came to be missing for most papers.
+   */
+  async embedDocumentVectors(researchId: string, metadata?: Partial<IngestInput['metadata']>): Promise<void> {
     const stored = metadata
       ? null
       : (
@@ -454,17 +483,5 @@ export class IngestService {
       await this.dataSource.query(`UPDATE research SET abstract_embedding = $1::vector WHERE id = $2`,
         [`[${vector.join(',')}]`, researchId]);
     }
-
-    // Record spend. Without this, embedding and OCR cost is invisible and can
-    // only be reconstructed after the fact from row counts.
-    if (embedded > 0) {
-      await this.dataSource.query(
-        `INSERT INTO ai_usage_logs (research_id, operation, model, prompt_tokens, total_tokens, latency_ms, succeeded)
-         VALUES ($1,'embedding',$2,$3,$3,$4,true)`,
-        [researchId, model, tokens, Date.now() - started],
-      );
-    }
-
-    return { embedded, tokens };
   }
 }

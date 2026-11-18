@@ -16,7 +16,8 @@ export class RegisterDto {
 }
 
 export class LoginDto {
-  @IsEmail() @MaxLength(180) email!: string;
+  // An email or a plain username (e.g. "admin" for the administrator account).
+  @IsString() @MinLength(1) @MaxLength(180) email!: string;
   @IsString() @MaxLength(200) password!: string;
 }
 

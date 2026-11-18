@@ -51,9 +51,23 @@ export class AuthService {
     return roles.includes('admin') || roles.includes('super_admin');
   });
 
+  /** May use the admin area. Mirrors the permission the admin API checks. */
+  readonly canManage = computed(() => this.hasPermission('admin.review'));
+  readonly canManageUsers = computed(() => this.hasPermission('admin.manage_users'));
+
+  private hasPermission(code: string): boolean {
+    const user = this.user();
+    return (user?.roles?.includes('super_admin') ?? false) || (user?.permissions?.includes(code) ?? false);
+  }
+
   constructor() {
     // Restore the session on boot so a refresh does not appear to log the user out.
-    if (this.accessToken) this.refreshMe().subscribe({ error: () => this.clearTokens() });
+    // Deferred because the request runs the auth interceptor, which injects this
+    // service: sent from here, it would fail as a circular dependency, and the
+    // error handler would then discard a perfectly good session.
+    queueMicrotask(() => {
+      if (this.accessToken) this.refreshMe().subscribe({ error: () => this.clearTokens() });
+    });
   }
 
   get accessToken(): string | null {

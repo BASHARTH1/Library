@@ -22,8 +22,10 @@
       }
 
       <label>
-        <span class="small muted">{{ i18n.t('email') }}</span>
-        <input class="input" type="email" name="email" required autocomplete="email"
+        <span class="small muted">{{ i18n.t(mode() === 'login' ? 'emailOrUsername' : 'email') }}</span>
+        <input class="input" name="email" required
+               [type]="mode() === 'login' ? 'text' : 'email'"
+               [autocomplete]="mode() === 'login' ? 'username' : 'email'"
                [ngModel]="email()" (ngModelChange)="email.set($event)" />
       </label>
 

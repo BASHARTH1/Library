@@ -304,7 +304,9 @@ export class ChatService {
   async suggestedQuestions(researchId: string): Promise<string[]> {
     const cached = await this.dataSource.query<Array<{ content: string }>>(
       `SELECT content FROM ai_generated_content
-       WHERE research_id = $1 AND kind = 'suggested_questions' AND deleted_at IS NULL LIMIT 1`,
+       WHERE research_id = $1 AND kind = 'suggested_questions' AND deleted_at IS NULL
+         AND EXISTS (SELECT 1 FROM research r WHERE r.id = $1 AND r.deleted_at IS NULL AND r.status = 'published')
+       LIMIT 1`,
       [researchId],
     );
     if (cached.length > 0) return JSON.parse(cached[0].content) as string[];
@@ -314,7 +316,7 @@ export class ChatService {
               COALESCE(r.abstract_ar, r.abstract_en) AS abstract,
               COALESCE(string_agg(DISTINCT s.name, ', '), '') AS sections
        FROM research r LEFT JOIN research_sections s ON s.research_id = r.id
-       WHERE r.id = $1 GROUP BY r.id`,
+       WHERE r.id = $1 AND r.deleted_at IS NULL AND r.status = 'published' GROUP BY r.id`,
       [researchId],
     );
     if (rows.length === 0) return [];

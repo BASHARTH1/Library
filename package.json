@@ -22,6 +22,7 @@
     "api:ocr": "npm run build --workspace apps/api && node apps/api/dist/scripts/ocr-repair.js",
     "api:upload-r2": "npm run build --workspace apps/api && node apps/api/dist/scripts/upload-files-to-r2.js",
     "api:extract-abstracts": "npm run build --workspace apps/api && node apps/api/dist/scripts/extract-abstracts.js",
+    "api:r2-cors": "npm run build --workspace apps/api && node apps/api/dist/scripts/r2-cors.js",
     "api:seed-auth": "npm run build --workspace apps/api && node apps/api/dist/scripts/seed-auth.js",
     "web:dev": "npm run start --workspace apps/web",
     "web:build": "npm run build --workspace apps/web",

@@ -18,6 +18,9 @@ import { DocumentParserService } from './ingest/document-parser.service';
 import { StructureService } from './ingest/structure.service';
 import { IngestService } from './ingest/ingest.service';
 import { OcrService } from './ingest/ocr.service';
+import { AdminController } from './admin/admin.controller';
+import { AdminService } from './admin/admin.service';
+import { ThesisPipelineService } from './admin/thesis-pipeline.service';
 
 @Module({
   imports: [
@@ -70,7 +73,7 @@ import { OcrService } from './ingest/ocr.service';
     GeminiModule,
     AuthModule,
   ],
-  controllers: [ResearchController, ChatController],
+  controllers: [ResearchController, ChatController, AdminController],
   providers: [
     // Authentication is global: every route is protected unless it declares
     // @Public() or @OptionalAuth(). A new endpoint cannot be exposed by
@@ -85,6 +88,8 @@ import { OcrService } from './ingest/ocr.service';
     StructureService,
     IngestService,
     OcrService,
+    AdminService,
+    ThesisPipelineService,
   ],
 })
 export class AppModule {}
